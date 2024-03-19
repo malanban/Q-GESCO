@@ -10,7 +10,7 @@ def set_act_quantize_params(
     cali_data,
     awq: bool = False,
     order: str = "before",
-    batch_size: int = 256,
+    batch_size: int = 32,
 ):
     weight_quant, act_quant = act_get_quant_state(order, awq)
     module.set_quant_state(weight_quant, act_quant)

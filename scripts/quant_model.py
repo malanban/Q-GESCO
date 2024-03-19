@@ -51,14 +51,14 @@ def random_calib_data_generator(shape, num_samples, device,class_cond=True):
     logger.log('Calibration Data Generation...')
     calib_data = []
     for batch in range(num_samples):
-        img = torch.randn(*shape, device=device)
+        img = th.randn(*shape, device=device)
         calib_data.append(img)
-    t = torch.tensor([1] * num_samples, device=device)  # TODO timestep gen
+    t = th.tensor([1] * num_samples, device=device)  # TODO timestep gen
     if class_cond:
-        cls = torch.tensor([1] * num_samples, device=device).long()  # TODO class gen
-        return torch.cat(calib_data, dim=0), t, cls
+        cls = th.tensor([1] * num_samples, device=device).long()  # TODO class gen
+        return th.cat(calib_data, dim=0), t, cls
     else:
-        return torch.cat(calib_data, dim=0), t
+        return th.cat(calib_data, dim=0), t
 
 
 def quant_model(args, cnn):
@@ -88,8 +88,9 @@ def quant_model(args, cnn):
         qnn.set_first_last_layer_to_8bit()
 
     qnn.disable_network_output_quantization()
-    print("check the model!")
-    print(qnn)
+    print("Quantum Model Initialized!")
+    # print("check the model!")
+    # print(qnn)
     cali_data = random_calib_data_generator(
         [1, 3, args.image_size, args.image_size], args.calib_num_samples, "cuda", args.class_cond
     )

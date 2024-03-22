@@ -244,6 +244,7 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
         else:
             map_to_be_discarded.append(idx)
 
+    # concatenate instance map if it exists
     if 'instance' in data:
         inst_map = data['instance']
         instance_edge_map = get_edges(inst_map)

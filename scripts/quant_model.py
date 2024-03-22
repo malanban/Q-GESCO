@@ -136,7 +136,8 @@ def quant_model(args, cnn, diffusion, loader):
             "cuda",
             args.calib_t_mode,
             diffusion,
-            args.class_cond,
+            loader,
+            args,
         )
     elif args.calib_im_mode == "raw":
         cali_data = raw_calib_data_generator(
@@ -278,7 +279,7 @@ def generate_t(args, t_mode, num_samples, diffusion, device):
     return t.clamp(0, diffusion.num_timesteps - 1)
 
 # @pineatus
-def random_calib_data_generator(shape, num_samples, diffusion, device, data, args, t_mode):
+def random_calib_data_generator(shape, num_samples, device, t_mode, diffusion, loader, args):
     """
     Questa funzione genera il calibration dataset. 
     Calibration Datas sono costituiti da:
@@ -294,7 +295,7 @@ def random_calib_data_generator(shape, num_samples, diffusion, device, data, arg
     t = generate_t(t_mode, num_samples, diffusion, device)
     # Generate Input_Semantics
     input_semantics = []
-    for i, (batch, cond) in enumerate(data):
+    for i, (batch, cond) in enumerate(loader):
         model_kwargs = preprocess_input_FDS(args, cond, num_classes=args.num_classes, one_hot_label=args.one_hot_label)
         input_semantics.append(model_kwargs['y'])
         if ((i+1) * args.batch_size >= num_samples):

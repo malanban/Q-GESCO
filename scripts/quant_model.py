@@ -111,6 +111,20 @@ def quant_model(args, cnn, diffusion, loader):
         "prob": args.prob,
         "symmetric": True,
     }
+
+    qnn = QuantModel(
+        model=cnn, weight_quant_params=wq_params, act_quant_params=aq_params
+    )
+    qnn.cuda()
+    qnn.eval()
+    if not args.disable_8bit_head_stem:
+        print("Setting the first and the last layer to 8-bit")
+        qnn.set_first_last_layer_to_8bit()
+
+    qnn.disable_network_output_quantization()
+    print("Quantum Model Initialized!")
+    # print("check the model!")
+    # print(qnn)
     # cali_data = random_calib_data_generator(
     #     [1, 3, args.image_size, args.image_size], args.calib_num_samples, "cuda", args.class_cond
     # )
@@ -157,20 +171,6 @@ def quant_model(args, cnn, diffusion, loader):
         )
     else:
         raise NotImplementedError
-
-    qnn = QuantModel(
-        model=cnn, weight_quant_params=wq_params, act_quant_params=aq_params
-    )
-    qnn.cuda()
-    qnn.eval()
-    if not args.disable_8bit_head_stem:
-        print("Setting the first and the last layer to 8-bit")
-        qnn.set_first_last_layer_to_8bit()
-
-    qnn.disable_network_output_quantization()
-    print("Quantum Model Initialized!")
-    # print("check the model!")
-    # print(qnn)
 
     device = next(qnn.parameters()).device
     # print('the quantized model is below!')

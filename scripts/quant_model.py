@@ -10,6 +10,7 @@ import os
 # import numpy as np
 # import matplotlib.pyplot as plt
 import torch as th
+import torch
 import torch.nn as nn
 import torch.distributed as dist
 from pooling import MedianPool2d

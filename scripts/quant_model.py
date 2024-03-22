@@ -293,7 +293,7 @@ def random_calib_data_generator(shape, num_samples, device, t_mode, diffusion, l
     # Generate random noisy images calibration data
     calib_data = torch.randn(*new_shape, device=device)
     # Generate Timestesps
-    t = generate_t(t_mode, num_samples, diffusion, device)
+    t = generate_t(args, t_mode, num_samples, diffusion, device)
     # Generate Input_Semantics
     input_semantics = []
     for i, (batch, cond) in enumerate(loader):

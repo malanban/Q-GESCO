@@ -1,7 +1,7 @@
 # @pineatus
 import torch
 from guided_diffusion.image_datasets import load_data
-from .quant_model import preprocess_input_FDS
+from quant_model import preprocess_input_FDS
 
 def generate_t(args, t_mode, num_samples, diffusion, device):
     if t_mode == "1":

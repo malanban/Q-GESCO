@@ -467,6 +467,31 @@ def create_argparser():
     parser.add_argument("--prob", default=1.0, type=float)
     parser.add_argument("--input_prob", default=1.0, type=float)
     parser.add_argument("--use_adaround", action="store_true")
+    parser.add_argument(
+            "--calib_im_mode",
+            default="random",
+            type=str,
+            choices=["random", "raw", "raw_forward_t", "noise_backward_t"],
+        )
+    parser.add_argument(
+        "--calib_t_mode",
+        default="random",
+        type=str,
+        choices=["random", "1", "-1", "mean", "uniform" , 'manual' ,'normal' ,'poisson'],
+    )
+    parser.add_argument(
+        "--calib_t_mode_normal_mean",
+        default=0.5,
+        type=float,
+        help='for adjusting the weights in the normal distribution'
+    )
+    parser.add_argument(
+        "--calib_t_mode_normal_std",
+        default=0.35,
+        type=float,
+        help='for adjusting the weights in the normal distribution'
+    )
+    parser.add_argument("--out_path", default="", type=str)
 
     return parser
 

@@ -132,7 +132,8 @@ def quant_model(args, cnn, diffusion, loader):
     print('\n Sampling Calibration Dataset...')
     if args.calib_im_mode == "random":
         cali_data = random_calib_data_generator(
-            [args.calib_num_samples, 3, args.image_size, args.image_size],
+            # [args.calib_num_samples, 3, args.image_size, args.image_size],
+            [args.calib_num_samples, 3, args.image_size, args.image_size * 2],  # @pineatus
             args.calib_num_samples,
             "cuda",
             args.calib_t_mode,
@@ -435,6 +436,7 @@ def backward_t_calib_data_generator(
         loop_fn(
             model,
             (num_samples, 3, args.image_size, args.image_size),
+            # @pineauts (args.batch_size, 3, image.shape[2], image.shape[3]),
             clip_denoised=args.clip_denoised,
             model_kwargs=model_kwargs,
             device=device,

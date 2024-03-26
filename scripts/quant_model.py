@@ -415,7 +415,7 @@ def backward_t_calib_data_generator(
             if ((i+1) * args.batch_size >= num_samples):
                 break
         model_kwargs['y'] = torch.cat(input_semantics[:num_samples], dim=0)
-        print(f'input_semantics shape = {model_kwargs['y'].shape}')
+        print(f'input_semantics shape = {model_kwargs["y"].shape}')
 
     # Generate sample 
     """

@@ -301,8 +301,12 @@ def random_calib_data_generator(shape, num_samples, device, t_mode, diffusion, l
         input_semantics.append(model_kwargs['y'])
         if ((i+1) * args.batch_size >= num_samples):
             break
-    print(calib_data.shape, input_semantics[0].shape)
-    return calib_data, t, torch.cat(input_semantics[:num_samples], dim=0)
+    semantics = torch.cat(input_semantics[:num_samples], dim=0)
+    print(f'\ncalib data shapes: {calib_data.shape}')
+    print(f't shape: {t.shape}')
+    print(f'y shape: {semantics.shape}')
+          
+    return calib_data, t, semantics
 
 
 # def random_calib_data_generator(

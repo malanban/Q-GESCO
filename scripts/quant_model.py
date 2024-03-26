@@ -132,7 +132,7 @@ def quant_model(args, cnn, diffusion, loader):
     print('\n Sampling Calibration Dataset...')
     if args.calib_im_mode == "random":
         cali_data = random_calib_data_generator(
-            [1, 3, args.image_size, args.image_size],
+            [args.calib_num_samples, 3, args.image_size, args.image_size],
             args.calib_num_samples,
             "cuda",
             args.calib_t_mode,
@@ -289,9 +289,9 @@ def random_calib_data_generator(shape, num_samples, device, t_mode, diffusion, l
         - timestep t
     """
     # add num_sample as first dimension for the calibration_data tensor
-    new_shape = (num_samples, *shape)
+    # new_shape = (num_samples, *shape)
     # Generate random noisy images calibration data
-    calib_data = torch.randn(*new_shape, device=device)
+    calib_data = torch.randn(shape, device=device)
     # Generate Timestesps
     t = generate_t(args, t_mode, num_samples, diffusion, device)
     # Generate Input_Semantics

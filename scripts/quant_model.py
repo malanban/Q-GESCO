@@ -400,8 +400,10 @@ def forward_t_calib_data_generator(
 def backward_t_calib_data_generator(
     model, args, num_samples, device, t_mode, diffusion, loader, class_cond=True
 ):
+    print('Backward Calib Data Generation...')
     # Generate timestep t
     t = generate_t(args, t_mode, num_samples, diffusion, device).long()
+    print(f'Timesteps Generated of shape {t.shape}')
 
     # Generate conditional signal y
     model_kwargs = {}
@@ -413,6 +415,7 @@ def backward_t_calib_data_generator(
             if ((i+1) * args.batch_size >= num_samples):
                 break
         model_kwargs['y'] = torch.cat(input_semantics[:num_samples], dim=0)
+        print(f'input_semantics shape = {model_kwargs['y'].shape}')
 
     # Generate sample 
     """
@@ -459,7 +462,7 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
 #     print("label map shape:", label_map.shape)
 
     input_semantics = input_label.scatter_(1, label_map, 1.0)
-    print(input_semantics.shape)
+    # print(input_semantics.shape)
     map_to_be_discarded = []
     map_to_be_preserved = []
     input_semantics = input_semantics.squeeze(0)
@@ -477,7 +480,7 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
         map_to_be_preserved.append(num_classes)
         num_classes += 1
 
-    print(input_semantics.shape, len(map_to_be_preserved))
+    # print(input_semantics.shape, len(map_to_be_preserved))
 
     # input_semantics = input_semantics[map_to_be_preserved].unsqueeze(0)
     input_semantics = input_semantics[0][map_to_be_preserved]
@@ -493,16 +496,16 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
     input_semantics += noise
 
     if pool == "med":
-        print("Using Median filter")
+        # print("Using Median filter")
         med_filter = MedianPool2d(padding=1, same=True)
         input_semantics_clean = med_filter(input_semantics)
     elif pool == "mean":
-        print("Using Average filter")
+        # print("Using Average filter")
         avg_filter = th.nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
         # avg_filter2 = th.nn.AvgPool2d(kernel_size=5, stride=1, padding=1)
         input_semantics_clean = avg_filter(input_semantics)
     elif pool == "max":
-        print("Using Max filter")
+        # print("Using Max filter")
         avg_filter = th.nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
         max_filter = th.nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
         input_semantics_clean = max_filter(avg_filter(input_semantics))

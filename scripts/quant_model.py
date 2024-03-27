@@ -69,6 +69,9 @@ def main():
     model.to("cuda")
     # if args.use_fp16:
     #     model.convert_to_fp16()
+    # @Pineatus
+    if args.use_fp16:
+        model.convert_to_fp32()
     model.eval()
 
     # Create data loader

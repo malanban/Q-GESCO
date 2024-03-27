@@ -235,6 +235,7 @@ class UniformAffineQuantizer(nn.Module):
             # print(scale, zero_point)
             scores = []
             batch = 8
+            #batch = 1 # @ Pineatus
             for i in range(0, self.num, batch):
                 x_int = (
                     x.view(1, -1) / scale[i : i + batch]

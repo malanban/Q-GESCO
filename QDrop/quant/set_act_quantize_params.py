@@ -10,7 +10,7 @@ def set_act_quantize_params(
     cali_data,
     awq: bool = False,
     order: str = "before",
-    batch_size: int = 4,
+    batch_size: int = 16,
 ):
     weight_quant, act_quant = act_get_quant_state(order, awq)
     module.set_quant_state(weight_quant, act_quant)
@@ -31,7 +31,8 @@ def set_act_quantize_params(
             if isinstance(t, (QuantModule, BaseQuantBlock)):
                 t.act_quantizer.set_inited(True)
     else:
-        batch_size = min(batch_size, cali_data[0].size(0))
+        #batch_size = min(batch_size, cali_data[0].size(0))
+        batch_size = 1
         with torch.no_grad():
             for i in range(int(cali_data[0].size(0) / batch_size)):
                 module(

@@ -41,6 +41,7 @@ def set_act_quantize_params(
                         for _ in cali_data
                     ]
                 )
+                print(i)
         torch.cuda.empty_cache()
 
         for t in module.modules():

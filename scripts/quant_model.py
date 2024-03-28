@@ -202,11 +202,14 @@ def quant_model(args, cnn, diffusion, loader):
 
     """init weight quantizer"""
     set_weight_quantize_params(qnn)
+    print('quantized weight initialized')
     if not args.use_adaround:
         set_act_quantize_params(
             qnn, cali_data=cali_data, awq=args.awq, order=args.order
         )
+        print('set_act_quantize_params completed')
         qnn.set_quant_state(weight_quant=True, act_quant=args.act_quant)
+        print('set_quant_state completed')
         return qnn
     else:
 

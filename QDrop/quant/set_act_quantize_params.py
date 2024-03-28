@@ -32,7 +32,7 @@ def set_act_quantize_params(
                 t.act_quantizer.set_inited(True)
     else:
         #batch_size = min(batch_size, cali_data[0].size(0))
-        batch_size = 1
+        batch_size = 2
         with torch.no_grad():
             for i in range(int(cali_data[0].size(0) / batch_size)):
                 module(

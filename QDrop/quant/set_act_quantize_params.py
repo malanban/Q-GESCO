@@ -41,7 +41,7 @@ def set_act_quantize_params(
                         for _ in cali_data
                     ]
                 )
-                print(i)
+                print(f'{i}/{int(cali_data[0].size(0) / batch_size)}')
         torch.cuda.empty_cache()
 
         for t in module.modules():

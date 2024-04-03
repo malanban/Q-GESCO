@@ -96,6 +96,10 @@ def main():
     # quantize model
     model = quant_model(args, model, diffusion, loader)
 
+    # Save the Quantized Model
+    torch.save(model.state_dict(), './models')
+    print(f'Modello quantizzato salvato con successo in: ./models')
+
 def quant_model(args, cnn, diffusion, loader):
     # build quantization parameters
     wq_params = {

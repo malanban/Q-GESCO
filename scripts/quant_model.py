@@ -97,8 +97,15 @@ def main():
     model = quant_model(args, model, diffusion, loader)
 
     # Save the Quantized Model
-    torch.save(model.state_dict(), '/models/quantized_Cityscapes_ema_0.9999_190000.pt')
-    print(f'Modello quantizzato salvato con successo in: /models/quantized_Cityscapes_ema_0.9999_190000.pt')
+    save_directory = '/models'
+    model_filename = 'quantized_Cityscapes_ema_0.9999_190000.pt'
+    if not os.path.exists(save_directory):
+        os.makedirs(save_directory)
+
+    model_save_path = os.path.join(save_directory, model_filename)
+    torch.save(model.state_dict(), model_save_path)
+    print(f'Modello quantizzato salvato con successo in: {model_save_path}')
+
 
 def quant_model(args, cnn, diffusion, loader):
     # build quantization parameters

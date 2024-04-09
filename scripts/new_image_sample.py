@@ -88,7 +88,7 @@ def main():
     )
     quant_model(args, model)
     # Carica lo state_dict dal checkpoint
-    checkpoint = th.load('path/to/your/quantized_model_checkpoint.pth')
+    checkpoint = th.load(args.model_path)
     new_state_dict = {key.replace('model.', ''): value for key, value in checkpoint.items()}
 
     # Carica il nuovo state_dict nel modello

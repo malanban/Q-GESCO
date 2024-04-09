@@ -343,6 +343,140 @@ def create_argparser():
     defaults.update(model_and_diffusion_defaults())
     parser = argparse.ArgumentParser()
     add_dict_to_argparser(parser, defaults)
+
+    parser.add_argument(
+        "--seed", default=1005, type=int, help="random seed for results reproduction"
+    )
+
+    # quantization parameters
+    parser.add_argument(
+        "--n_bits_w", default=4, type=int, help="bitwidth for weight quantization"
+    )
+    parser.add_argument(
+        "--channel_wise",
+        action="store_true",
+        help="apply channel_wise quantization for weights",
+    )
+    parser.add_argument(
+        "--n_bits_a", default=4, type=int, help="bitwidth for activation quantization"
+    )
+    parser.add_argument(
+        "--act_quant", action="store_true", help="apply activation quantization"
+    )
+    parser.add_argument("--disable_8bit_head_stem", action="store_true")
+
+    # weight calibration parameters
+    parser.add_argument(
+        "--calib_num_samples",
+        default=1024,
+        type=int,
+        help="size of the calibration dataset",
+    )
+    parser.add_argument(
+        "--iters_w", default=20000, type=int, help="number of iteration for adaround"
+    )
+    parser.add_argument(
+        "--weight",
+        default=0.01,
+        type=float,
+        help="weight of rounding cost vs the reconstruction loss.",
+    )
+    parser.add_argument(
+        "--keep_cpu", action="store_true", help="keep the calibration data on cpu"
+    )
+
+    parser.add_argument(
+        "--wwq",
+        action="store_true",
+        help="weight_quant for input in weight reconstruction",
+    )
+    parser.add_argument(
+        "--waq",
+        action="store_true",
+        help="act_quant for input in weight reconstruction",
+    )
+
+    parser.add_argument(
+        "--b_start",
+        default=20,
+        type=int,
+        help="temperature at the beginning of calibration",
+    )
+    parser.add_argument(
+        "--b_end", default=2, type=int, help="temperature at the end of calibration"
+    )
+    parser.add_argument(
+        "--warmup",
+        default=0.2,
+        type=float,
+        help="in the warmup period no regularization is applied",
+    )
+
+    # activation calibration parameters
+    parser.add_argument("--lr", default=4e-5, type=float, help="learning rate for LSQ")
+
+    parser.add_argument(
+        "--awq",
+        action="store_true",
+        help="weight_quant for input in activation reconstruction",
+    )
+    parser.add_argument(
+        "--aaq",
+        action="store_true",
+        help="act_quant for input in activation reconstruction",
+    )
+
+    parser.add_argument(
+        "--init_wmode",
+        default="mse",
+        type=str,
+        choices=["minmax", "mse", "minmax_scale"],
+        help="init opt mode for weight",
+    )
+    parser.add_argument(
+        "--init_amode",
+        default="mse",
+        type=str,
+        choices=["minmax", "mse", "minmax_scale"],
+        help="init opt mode for activation",
+    )
+    # order parameters
+    parser.add_argument(
+        "--order",
+        default="before",
+        type=str,
+        choices=["before", "after", "together"],
+        help="order about activation compare to weight",
+    )
+    parser.add_argument("--prob", default=1.0, type=float)
+    parser.add_argument("--input_prob", default=1.0, type=float)
+    parser.add_argument("--use_adaround", action="store_true")
+    parser.add_argument(
+            "--calib_im_mode",
+            default="random",
+            type=str,
+            choices=["random", "raw", "raw_forward_t", "noise_backward_t"],
+        )
+    parser.add_argument(
+        "--calib_t_mode",
+        default="random",
+        type=str,
+        choices=["random", "1", "-1", "mean", "uniform" , 'manual' ,'normal' ,'poisson'],
+    )
+    parser.add_argument(
+        "--calib_t_mode_normal_mean",
+        default=0.5,
+        type=float,
+        help='for adjusting the weights in the normal distribution'
+    )
+    parser.add_argument(
+        "--calib_t_mode_normal_std",
+        default=0.35,
+        type=float,
+        help='for adjusting the weights in the normal distribution'
+    )
+    parser.add_argument("--out_path", default="", type=str)
+
     return parser
 
 

@@ -121,8 +121,7 @@ def main():
     print("sampling...")
     all_samples = []
     
-    device = "cuda"
-    # device = "cuda:0"
+    device = "cuda:0"
     # Controlla il dispositivo del modello attraverso uno dei suoi parametri
     model_device = next(model.parameters()).device
     print(f'Il modello si trova su: {model_device}')
@@ -137,6 +136,7 @@ def main():
         # label = (cond['label_ori'].float() / 255.0).cuda()
 
         image = ((batch + 1.0) / 2.0).to(device)
+        print(image.device)
         label = (cond['label_ori'].float() / 255.0).to(device)
 
         sample = image[0].cpu().numpy()

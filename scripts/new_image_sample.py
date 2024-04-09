@@ -110,8 +110,6 @@ def main():
         is_train=False
     )
 
-    model.eval()
-
     image_path = os.path.join(args.results_path, 'images')
     os.makedirs(image_path, exist_ok=True)
     label_path = os.path.join(args.results_path, 'labels')
@@ -122,7 +120,8 @@ def main():
     print("sampling...")
     all_samples = []
     
-    device = "cuda:0"
+    device = "cuda"
+    # device = "cuda:0"
     for i, (batch, cond) in enumerate(data):
         # print(cond)
         # print(batch)

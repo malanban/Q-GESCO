@@ -87,8 +87,15 @@ def main():
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
     quant_model(args, model)
-    model.load_state_dict(th.load(args.model_path))
+    # Carica lo state_dict dal checkpoint
+    checkpoint = th.load('path/to/your/quantized_model_checkpoint.pth')
+    new_state_dict = {key.replace('model.', ''): value for key, value in checkpoint.items()}
+
+    # Carica il nuovo state_dict nel modello
+    model.load_state_dict(new_state_dict)
+    # model.load_state_dict(th.load(args.model_path))
     model.to("cuda")
+    model.eval()
 
     print("creating data loader...")
     data = load_data(

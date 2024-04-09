@@ -123,6 +123,9 @@ def main():
     
     device = "cuda"
     # device = "cuda:0"
+    # Controlla il dispositivo del modello attraverso uno dei suoi parametri
+    model_device = next(model.parameters()).device
+    print(f'Il modello si trova su: {model_device}')
     for i, (batch, cond) in enumerate(data):
         # print(cond)
         # print(batch)

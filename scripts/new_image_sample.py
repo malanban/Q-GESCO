@@ -49,7 +49,7 @@ SNR_DICT = {100: 0.0,
             5: 0.6,
             1: 0.9}
 
-def quant_model(args, cnn, diffusion, loader):
+def quant_model(args, cnn):
     # build quantization parameters
     wq_params = {
         "n_bits": args.n_bits_w,
@@ -86,7 +86,7 @@ def main():
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
-    quant_model()
+    quant_model(args, model)
     model.load_state_dict(th.load(args.model_path))
     model.to("cuda")
 
@@ -102,7 +102,7 @@ def main():
         random_flip=False,
         is_train=False
     )
-    
+
     model.eval()
 
     image_path = os.path.join(args.results_path, 'images')

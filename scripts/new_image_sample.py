@@ -10,14 +10,26 @@ import torch as th
 import torch.distributed as dist
 import torchvision as tv
 
-from guided_diffusion.image_datasets import load_data
-
 # from guided_diffusion import dist_util, logger
 from guided_diffusion.script_util import (
     model_and_diffusion_defaults,
     create_model_and_diffusion,
     add_dict_to_argparser,
     args_to_dict,
+)
+
+from guided_diffusion import dist_util, logger
+from guided_diffusion.image_datasets import load_data
+
+
+from QDrop.quant import (
+    block_reconstruction,
+    layer_reconstruction,
+    BaseQuantBlock,
+    QuantModule,
+    QuantModel,
+    set_weight_quantize_params,
+    set_act_quantize_params,
 )
 
 import numpy as np
@@ -37,6 +49,35 @@ SNR_DICT = {100: 0.0,
             5: 0.6,
             1: 0.9}
 
+def quant_model(args, cnn, diffusion, loader):
+    # build quantization parameters
+    wq_params = {
+        "n_bits": args.n_bits_w,
+        "channel_wise": args.channel_wise,
+        "scale_method": args.init_wmode,
+        "symmetric": True,
+    }
+    aq_params = {
+        "n_bits": args.n_bits_a,
+        "channel_wise": False,
+        "scale_method": args.init_amode,
+        "leaf_param": True,
+        "prob": args.prob,
+        "symmetric": True,
+    }
+
+    qnn = QuantModel(
+        model=cnn, weight_quant_params=wq_params, act_quant_params=aq_params
+    )
+    qnn.cuda()
+    qnn.eval()
+    if not args.disable_8bit_head_stem:
+        print("Setting the first and the last layer to 8-bit")
+        qnn.set_first_last_layer_to_8bit()
+
+    qnn.disable_network_output_quantization()
+    print("Quantum Model Initialized!")
+
 def main():
     args = create_argparser().parse_args()
     # dist_util.setup_dist()
@@ -45,6 +86,7 @@ def main():
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
+    quant_model()
     model.load_state_dict(th.load(args.model_path))
     model.to("cuda")
 
@@ -60,9 +102,7 @@ def main():
         random_flip=False,
         is_train=False
     )
-
-    if args.use_fp16:
-        model.convert_to_fp16()
+    
     model.eval()
 
     image_path = os.path.join(args.results_path, 'images')

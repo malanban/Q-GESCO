@@ -86,7 +86,7 @@ def main():
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
-    quant_model(args, model)
+    model = quant_model(args, model)
     # Carica lo state_dict dal checkpoint
     checkpoint = th.load(args.model_path)
     new_state_dict = {key.replace('model.', ''): value for key, value in checkpoint.items()}

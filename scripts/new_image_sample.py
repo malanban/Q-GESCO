@@ -89,12 +89,12 @@ def main():
     )
     model = quant_model(args, model)
     # Carica lo state_dict dal checkpoint
-    checkpoint = th.load(args.model_path)
-    new_state_dict = {key.replace('model.', ''): value for key, value in checkpoint.items()}
+    # checkpoint = th.load(args.model_path)
+    # new_state_dict = {key.replace('model.', ''): value for key, value in checkpoint.items()}
 
     # Carica il nuovo state_dict nel modello
-    model.load_state_dict(new_state_dict)
-    # model.load_state_dict(th.load(args.model_path))
+    # model.load_state_dict(new_state_dict)
+    model.load_state_dict(th.load(args.model_path))
     model.to("cuda")
     model.eval()
 

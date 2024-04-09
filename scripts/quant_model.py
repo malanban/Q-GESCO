@@ -97,7 +97,7 @@ def main():
     model = quant_model(args, model, diffusion, loader)
 
     # Save the Quantized Model
-    save_directory = '/models'
+    save_directory = 'content/QGESCO/models'
     model_filename = 'quantized_Cityscapes_ema_0.9999_190000.pt'
     if not os.path.exists(save_directory):
         os.makedirs(save_directory)

@@ -77,6 +77,7 @@ def quant_model(args, cnn):
 
     qnn.disable_network_output_quantization()
     print("Quantum Model Initialized!")
+    return qnn
 
 def main():
     args = create_argparser().parse_args()

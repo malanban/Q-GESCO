@@ -141,13 +141,12 @@ def main():
         print(image.device)
         label = (cond['label_ori'].float() / 255.0).to(device)
 
-        sample = image[0].cpu().numpy()
-        sample = np.transpose(sample, (1,2,0))
-        plot_label = cond['label'][0].cpu().numpy()
-        plot_label = plot_label.squeeze(0)
-        plot_label2 = cond['label_ori'][0].cpu().numpy()
-        plot_label2 = plot_label2
-
+        # sample = image[0].cpu().numpy()
+        # sample = np.transpose(sample, (1,2,0))
+        # plot_label = cond['label'][0].cpu().numpy()
+        # plot_label = plot_label.squeeze(0)
+        # plot_label2 = cond['label_ori'][0].cpu().numpy()
+        # plot_label2 = plot_label2
         # plt.subplot(1,3,1)
         # plt.imshow(sample)
         # plt.subplot(1,3,2)
@@ -183,15 +182,15 @@ def main():
         all_samples.extend([sample.cpu().numpy()])
 
         for j in range(sample.shape[0]):
-            tv.utils.save_image(sample[j], "./sample.png")
-            # tv.utils.save_image(image[j], os.path.join(image_path, cond['path'][j].split('/')[-1].split('.')[0] + '.png'))
+            # tv.utils.save_image(sample[j], "./sample.png")
+            tv.utils.save_image(image[j], os.path.join(image_path, cond['path'][j].split('/')[-1].split('.')[0] + '.png'))
             # tv.utils.save_image(sample[j], os.path.join(sample_path + "_SNR" + str(args.snr), cond['path'][j].split('/')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
-            # tv.utils.save_image(sample[j], os.path.join(sample_path, cond['path'][j].split('/')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
-            # tv.utils.save_image(label[j], os.path.join(label_path, cond['path'][j].split('/')[-1].split('.')[0]  + '.png'))
-            tv.utils.save_image(image[j], os.path.join(image_path, cond['path'][j].split('\\')[-1].split('.')[0] + '.png'))
-            tv.utils.save_image(sample[j], os.path.join(sample_path, cond['path'][j].split('\\')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
-            # tv.utils.save_image(sample[j], os.path.join(sample_path + "_SNR" + str(args.snr), cond['path'][j].split('\\')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
-            tv.utils.save_image(label[j], os.path.join(label_path, cond['path'][j].split('\\')[-1].split('.')[0]  + '.png'))
+            tv.utils.save_image(sample[j], os.path.join(sample_path, cond['path'][j].split('/')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
+            tv.utils.save_image(label[j], os.path.join(label_path, cond['path'][j].split('/')[-1].split('.')[0]  + '.png'))
+            # tv.utils.save_image(image[j], os.path.join(image_path, cond['path'][j].split('\\')[-1].split('.')[0] + '.png'))
+            # tv.utils.save_image(sample[j], os.path.join(sample_path, cond['path'][j].split('\\')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
+            # # tv.utils.save_image(sample[j], os.path.join(sample_path + "_SNR" + str(args.snr), cond['path'][j].split('\\')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
+            # tv.utils.save_image(label[j], os.path.join(label_path, cond['path'][j].split('\\')[-1].split('.')[0]  + '.png'))
 
 
         print(f"created {len(all_samples) * args.batch_size} samples")

@@ -181,12 +181,32 @@ def main():
         # all_samples.extend([sample.cpu().numpy() for sample in gathered_samples])
         all_samples.extend([sample.cpu().numpy()])
 
+        # @Pineatus Save the Samples.
         for j in range(sample.shape[0]):
+            # Base Filename for the sample
+            base_filename = os.path.splitext(os.path.basename(cond['path'][j]))[0]
+
+            # Complete path for the image
+            image_filename = f"{base_filename}.png"
+            image_path_full = os.path.join(image_path, image_filename)
+            tv.utils.save_image(image[j], image_path_full)
+
+            # Percorso completo del file campione con aggiunte SNR e pool
+            sample_filename = f"{base_filename}_SNR{args.snr}_pool{args.pool}.png"
+            sample_path_full = os.path.join(sample_path, sample_filename)
+            tv.utils.save_image(sample[j], sample_path_full)
+
+            # Percorso completo del file etichetta
+            label_filename = f"{base_filename}.png"
+            label_path_full = os.path.join(label_path, label_filename)
+            tv.utils.save_image(label[j], label_path_full)
+
+        # for j in range(sample.shape[0]):
             # tv.utils.save_image(sample[j], "./sample.png")
-            tv.utils.save_image(image[j], os.path.join(image_path, cond['path'][j].split('/')[-1].split('.')[0] + '.png'))
+            # tv.utils.save_image(image[j], os.path.join(image_path, cond['path'][j].split('/')[-1].split('.')[0] + '.png'))
             # tv.utils.save_image(sample[j], os.path.join(sample_path + "_SNR" + str(args.snr), cond['path'][j].split('/')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
-            tv.utils.save_image(sample[j], os.path.join(sample_path, cond['path'][j].split('/')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
-            tv.utils.save_image(label[j], os.path.join(label_path, cond['path'][j].split('/')[-1].split('.')[0]  + '.png'))
+            # tv.utils.save_image(sample[j], os.path.join(sample_path, cond['path'][j].split('/')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
+            # tv.utils.save_image(label[j], os.path.join(label_path, cond['path'][j].split('/')[-1].split('.')[0]  + '.png'))
             # tv.utils.save_image(image[j], os.path.join(image_path, cond['path'][j].split('\\')[-1].split('.')[0] + '.png'))
             # tv.utils.save_image(sample[j], os.path.join(sample_path, cond['path'][j].split('\\')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
             # # tv.utils.save_image(sample[j], os.path.join(sample_path + "_SNR" + str(args.snr), cond['path'][j].split('\\')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))

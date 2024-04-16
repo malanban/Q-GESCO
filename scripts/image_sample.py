@@ -45,7 +45,11 @@ def main():
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
-    model.load_state_dict(th.load(args.model_path))
+    # Carica lo state_dict dal checkpoint
+    checkpoint = th.load(args.model_path)
+    new_state_dict = {key.replace('model.', ''): value for key, value in checkpoint.items()}
+    model.load_state_dict(new_state_dict)
+    # model.load_state_dict(th.load(args.model_path))
     model.to("cuda")
 
     print("creating data loader...")

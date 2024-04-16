@@ -88,17 +88,17 @@ def main():
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
     # Carica lo state_dict dal checkpoint
-    # checkpoint = th.load(args.model_path)
-    # new_state_dict = {key.replace('model.', ''): value for key, value in checkpoint.items()}
-    # model.load_state_dict(new_state_dict)
+    checkpoint = th.load(args.model_path)
+    new_state_dict = {key.replace('model.', ''): value for key, value in checkpoint.items()}
+    model.load_state_dict(new_state_dict)
     model.cuda()
     model.eval()
-    model = quant_model(args, model)
-    model.load_state_dict(th.load(args.model_path))
+    # model = quant_model(args, model)
+    # model.load_state_dict(th.load(args.model_path))
     
-    # model.to("cuda")
-    model.cuda()
-    model.eval()
+    # # model.to("cuda")
+    # model.cuda()
+    # model.eval()
 
     print("creating data loader...")
     data = load_data(

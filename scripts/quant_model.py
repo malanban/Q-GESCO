@@ -533,7 +533,7 @@ def backward_t_calib_data_generator(
     for now_rt, sample_t in enumerate(
         loop_fn(
             model,
-            (num_samples, 3, args.image_size, args.image_size),
+            (num_samples, 3, args.image_size, args.image_size * 2),
             # @pineauts (args.batch_size, 3, image.shape[2], image.shape[3]),
             clip_denoised=args.clip_denoised,
             model_kwargs=model_kwargs,

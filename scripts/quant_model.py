@@ -66,11 +66,13 @@ def main():
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
-    model.load_state_dict(th.load(args.model_path))
-    model.to("cuda")
+    checkpoint = th.load(args.model_path)
+    model.load_state_dict({key.replace('model.', ''): value for key, value in checkpoint.items()})
+    model.cuda()
     # if args.use_fp16:
     #     model.convert_to_fp16()
     model.convert_to_fp32()    # @Pineatus
+    # Alternative: model.dtype = torch.float32
     model.eval()
 
     # Create data loader

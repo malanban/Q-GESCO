@@ -12,6 +12,7 @@ import os
 import torch as th
 import torch
 import torch.nn as nn
+import torchvision as tv
 import torch.distributed as dist
 from pooling import MedianPool2d
 # import torchvision as tv
@@ -105,6 +106,86 @@ def main():
     model_save_path = os.path.join(save_directory, model_filename)
     torch.save(model.state_dict(), model_save_path)
     print(f'Modello quantizzato salvato con successo in: {model_save_path}')
+
+    sample(args, model, diffusion, loader)
+
+def sample(args, model, diffusion, loader):
+    image_path = os.path.join(args.results_path, 'images')
+    os.makedirs(image_path, exist_ok=True)
+    label_path = os.path.join(args.results_path, 'labels')
+    os.makedirs(label_path, exist_ok=True)
+    sample_path = os.path.join(args.results_path, 'samples')
+    os.makedirs(sample_path, exist_ok=True)
+
+    print("sampling...")
+    all_samples = []
+    
+    device = "cuda:0"
+    # Controlla il dispositivo del modello attraverso uno dei suoi parametri
+    model_device = next(model.parameters()).device
+    print(f'Il modello si trova su: {model_device}')
+    for i, (batch, cond) in enumerate(loader):
+        # print(cond)
+        # print(batch)
+        # print(batch.size())
+        # print(cond["label_ori"].size())
+        # print(cond["label"].size())
+        # print("Is 188 in label?", 188 in cond["label"])
+        # image = ((batch + 1.0) / 2.0).cuda()
+        # label = (cond['label_ori'].float() / 255.0).cuda()
+
+        image = ((batch + 1.0) / 2.0).to(device)
+        label = (cond['label_ori'].float() / 255.0).to(device)
+
+        # model_kwargs = preprocess_input(args, cond, num_classes=args.num_classes, one_hot_label=args.one_hot_label, pool=None)
+        model_kwargs = preprocess_input_FDS(args, cond, num_classes=args.num_classes, one_hot_label=args.one_hot_label)
+        # model_kwargs, cond = preprocess_input(cond, one_hot_label=args.one_hot_label, add_noise=args.add_noise, noise_to=args.noise_to)
+
+        # set hyperparameter
+        model_kwargs['s'] = args.s
+
+        sample_fn = (
+            diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
+        )
+        sample = sample_fn(
+            model,
+            (args.batch_size, 3, image.shape[2], image.shape[3]),
+            clip_denoised=args.clip_denoised,
+            model_kwargs=model_kwargs,
+            progress=True
+        )
+        sample = (sample + 1) / 2.0
+        # print("Sample statistics:", th.mean(sample), th.max(sample))
+
+        # gathered_samples = [th.zeros_like(sample) for _ in range(dist.get_world_size())]
+        # dist.all_gather(gathered_samples, sample)  # gather not supported with NCCL
+        # all_samples.extend([sample.cpu().numpy() for sample in gathered_samples])
+        all_samples.extend([sample.cpu().numpy()])
+
+        # @Pineatus Save the Samples.
+        for j in range(sample.shape[0]):
+            # Base Filename for the sample
+            base_filename = os.path.splitext(os.path.basename(cond['path'][j]))[0]
+
+            # Complete path for the image
+            image_filename = f"{base_filename}.png"
+            image_path_full = os.path.join(image_path, image_filename)
+            tv.utils.save_image(image[j], image_path_full)
+
+            # Percorso completo del file campione con aggiunte SNR e pool
+            sample_filename = f"{base_filename}_SNR{args.snr}_pool{args.pool}.png"
+            sample_path_full = os.path.join(sample_path, sample_filename)
+            tv.utils.save_image(sample[j], sample_path_full)
+
+            # Percorso completo del file etichetta
+            label_filename = f"{base_filename}.png"
+            label_path_full = os.path.join(label_path, label_filename)
+            tv.utils.save_image(label[j], label_path_full)
+
+        print(f"created {len(all_samples) * args.batch_size} samples")
+
+        if len(all_samples) * args.batch_size > args.num_samples:
+            break
 
 
 def quant_model(args, cnn, diffusion, loader):

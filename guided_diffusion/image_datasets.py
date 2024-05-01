@@ -62,8 +62,6 @@ def load_data(
     else:
         raise NotImplementedError('{} not implemented'.format(dataset_mode))
 
-    print("Len of Dataset:", len(all_files))
-
     dataset = ImageDataset(
         dataset_mode,
         image_size,

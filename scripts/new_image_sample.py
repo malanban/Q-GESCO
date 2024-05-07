@@ -95,7 +95,7 @@ def main():
     model.eval()
 
     # Load Quantized Model
-    model = quant_model(args, model)
+    # model = quant_model(args, model)
     model.load_state_dict(th.load(args.model_path))
     model.cuda()
     model.eval()

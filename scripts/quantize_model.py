@@ -109,7 +109,7 @@ def main():
     torch.save(model.state_dict(), model_save_path)
     print(f'Modello quantizzato salvato con successo in: {model_save_path}')
 
-    sample(args, model, diffusion, loader)
+    # sample(args, model, diffusion, loader)
 
 def sample(args, model, diffusion, loader):
     image_path = os.path.join(args.results_path, 'images')
@@ -289,6 +289,7 @@ def quant_model(args, cnn, diffusion, loader):
     )
 
     if args.act_quant and args.order == "before" and args.awq is False:
+        print(f'Case 2: act_quant = True, order = before, awq= False')
         """Case 2"""
         set_act_quantize_params(
             qnn, cali_data=cali_data, awq=args.awq, order=args.order
@@ -296,8 +297,9 @@ def quant_model(args, cnn, diffusion, loader):
 
     """init weight quantizer"""
     set_weight_quantize_params(qnn)
-    print('quantized weight initialized')
+    print('quantized weight initialized: set_weight_quantize_params')
     if not args.use_adaround:
+        print('Case 1.1: use_adaround = False')
         set_act_quantize_params(
             qnn, cali_data=cali_data, awq=args.awq, order=args.order
         )
@@ -306,7 +308,7 @@ def quant_model(args, cnn, diffusion, loader):
         print('set_quant_state completed')
         return qnn
     else:
-
+        print('Case 1.2: use_adaround = True')
         def set_weight_act_quantize_params(module):
             if isinstance(module, QuantModule):
                 layer_reconstruction(qnn, module, **kwargs)

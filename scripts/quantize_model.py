@@ -13,13 +13,14 @@ import torch as th
 import torch
 import torch.nn as nn
 import torchvision as tv
-import torch.distributed as dist
+# import torch.distributed as dist
 from pooling import MedianPool2d
 # import torchvision as tv
 # from scipy import ndimage, signal
 
-from guided_diffusion import dist_util, logger
+# from guided_diffusion import dist_util, logger
 from guided_diffusion.image_datasets import load_data
+from guided_diffusion import logger
 
 # from guided_diffusion import dist_util, logger
 from guided_diffusion.script_util import (
@@ -38,13 +39,6 @@ from QDrop.quant import (
     set_weight_quantize_params,
     set_act_quantize_params,
 )
-
-# from calibration_dataset import (
-#     random_calib_data_generator,
-#     raw_calib_data_generator,
-#     forward_t_calib_data_generator,
-#     backward_t_calib_data_generator,
-# )
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -72,7 +66,6 @@ def main():
     # if args.use_fp16:
     #     model.convert_to_fp16()
     model.convert_to_fp32()    # @Pineatus
-    # Alternative: model.dtype = torch.float32
     model.eval()
 
     # Create data loader
@@ -110,6 +103,157 @@ def main():
     print(f'Modello quantizzato salvato con successo in: {model_save_path}')
 
     # sample(args, model, diffusion, loader)
+
+def quant_model(args, cnn, diffusion, loader):
+    # build quantization parameters
+    wq_params = {
+        "n_bits": args.n_bits_w,
+        "channel_wise": args.channel_wise,
+        "scale_method": args.init_wmode,
+        "symmetric": True,
+    }
+    aq_params = {
+        "n_bits": args.n_bits_a,
+        "channel_wise": False,
+        "scale_method": args.init_amode,
+        "leaf_param": True,
+        "prob": args.prob,
+        "symmetric": True,
+    }
+
+    qnn = QuantModel(
+        model=cnn, weight_quant_params=wq_params, act_quant_params=aq_params
+    )
+    qnn.cuda()
+    qnn.eval()
+    if not args.disable_8bit_head_stem:
+        print("Setting the first and the last layer to 8-bit")
+        qnn.set_first_last_layer_to_8bit()
+
+    qnn.disable_network_output_quantization()
+    print("Quantum Model Initialized!")
+
+    # @pineatus
+    print('\n Sampling Calibration Dataset...')
+    if args.calib_im_mode == "random":
+        cali_data = random_calib_data_generator(
+            # [args.calib_num_samples, 3, args.image_size, args.image_size],
+            [args.calib_num_samples, 3, args.image_size, args.image_size * 2],  # @pineatus
+            args.calib_num_samples,
+            "cuda",
+            args.calib_t_mode,
+            diffusion,
+            loader,
+            args,
+        )
+    elif args.calib_im_mode == "raw":
+        cali_data = raw_calib_data_generator(
+            args,
+            args.calib_num_samples,
+            "cuda",
+            args.calib_t_mode,
+            diffusion,
+            args.class_cond,
+        )
+    elif args.calib_im_mode == "raw_forward_t":
+        cali_data = forward_t_calib_data_generator(
+            args,
+            args.calib_num_samples,
+            "cuda",
+            args.calib_t_mode,
+            diffusion,
+            args.class_cond,
+        )
+    elif args.calib_im_mode == "noise_backward_t":
+        cali_data = backward_t_calib_data_generator(
+            cnn,
+            args,
+            args.calib_num_samples,
+            "cuda",
+            args.calib_t_mode,
+            diffusion,
+            loader,
+            args.class_cond,
+        )
+    else:
+        raise NotImplementedError
+
+    # Kwargs for weight rounding calibration
+    assert args.wwq is True
+
+    # @Pineatus Questa Parte dovrebbe andare nell'if di adaround
+    kwargs = dict(
+        cali_data=cali_data,
+        iters=args.iters_w,
+        weight=args.weight,
+        b_range=(args.b_start, args.b_end),
+        warmup=args.warmup,
+        opt_mode="mse",
+        wwq=args.wwq,
+        waq=args.waq,
+        order=args.order,
+        act_quant=args.act_quant,
+        lr=args.lr,
+        input_prob=args.input_prob,
+        keep_gpu=not args.keep_cpu,
+    )
+
+    if args.act_quant and args.order == "before" and args.awq is False:
+        print(f'Case 2: act_quant = True, order = before, awq= False')
+        """Case 2"""
+        set_act_quantize_params(
+            qnn, cali_data=cali_data, awq=args.awq, order=args.order, batch_size=1
+        )
+
+    """init weight quantizer"""
+    set_weight_quantize_params(qnn) # compute the step size and zero point for weight quantizer
+    print('quantized weight initialized: set_weight_quantize_params')
+
+    if not args.use_adaround:
+        print('Case 1.1: use_adaround = False')
+        set_act_quantize_params(
+            qnn, cali_data=cali_data, awq=args.awq, order=args.order
+        )
+        print(f'set_act_quantize_params(awq={args.awq}, order={args.order}) completed')
+        qnn.set_quant_state(weight_quant=True, act_quant=args.act_quant)
+        print(f'set_quant_state completed: weight_quant = True, act_quant={args.act_quant}')
+        return qnn
+    else:
+        print('Case 1.2: use_adaround = True')
+        def set_weight_act_quantize_params(module):
+            if isinstance(module, QuantModule):
+                layer_reconstruction(qnn, module, **kwargs)
+            elif isinstance(module, BaseQuantBlock):
+                block_reconstruction(qnn, module, **kwargs)
+            else:
+                raise NotImplementedError
+
+        def recon_model(model: nn.Module):
+            """
+            Block reconstruction. For the first and last layers, we can only apply layer reconstruction.
+            """
+            for name, module in model.named_children():
+                if isinstance(module, QuantModule):
+                    print("Reconstruction for layer {}".format(name))
+                    set_weight_act_quantize_params(module)
+                elif isinstance(module, BaseQuantBlock):
+                    print("Reconstruction for block {}".format(name))
+                    set_weight_act_quantize_params(module)
+                else:
+                    recon_model(module)
+
+        # Start calibration
+        logger.log('Starting Calibration..')
+        recon_model(qnn)
+
+        if args.act_quant and args.order == "after" and args.waq is False:
+            """Case 1"""
+            set_act_quantize_params(
+                qnn, cali_data=cali_data, awq=args.awq, order=args.order
+            )
+
+        qnn.set_quant_state(weight_quant=True, act_quant=args.act_quant)
+        return qnn
 
 def sample(args, model, diffusion, loader):
     image_path = os.path.join(args.results_path, 'images')
@@ -189,161 +333,6 @@ def sample(args, model, diffusion, loader):
         if len(all_samples) * args.batch_size > args.num_samples:
             break
 
-
-def quant_model(args, cnn, diffusion, loader):
-    # build quantization parameters
-    wq_params = {
-        "n_bits": args.n_bits_w,
-        "channel_wise": args.channel_wise,
-        "scale_method": args.init_wmode,
-        "symmetric": True,
-    }
-    aq_params = {
-        "n_bits": args.n_bits_a,
-        "channel_wise": False,
-        "scale_method": args.init_amode,
-        "leaf_param": True,
-        "prob": args.prob,
-        "symmetric": True,
-    }
-
-    qnn = QuantModel(
-        model=cnn, weight_quant_params=wq_params, act_quant_params=aq_params
-    )
-    qnn.cuda()
-    qnn.eval()
-    if not args.disable_8bit_head_stem:
-        print("Setting the first and the last layer to 8-bit")
-        qnn.set_first_last_layer_to_8bit()
-
-    qnn.disable_network_output_quantization()
-    print("Quantum Model Initialized!")
-    # print("check the model!")
-    # print(qnn)
-    # cali_data = random_calib_data_generator(
-    #     [1, 3, args.image_size, args.image_size], args.calib_num_samples, "cuda", args.class_cond
-    # )
-    # @pineatus
-    print('\n Sampling Calibration Dataset...')
-    if args.calib_im_mode == "random":
-        cali_data = random_calib_data_generator(
-            # [args.calib_num_samples, 3, args.image_size, args.image_size],
-            [args.calib_num_samples, 3, args.image_size, args.image_size * 2],  # @pineatus
-            args.calib_num_samples,
-            "cuda",
-            args.calib_t_mode,
-            diffusion,
-            loader,
-            args,
-        )
-    elif args.calib_im_mode == "raw":
-        cali_data = raw_calib_data_generator(
-            args,
-            args.calib_num_samples,
-            "cuda",
-            args.calib_t_mode,
-            diffusion,
-            args.class_cond,
-        )
-    elif args.calib_im_mode == "raw_forward_t":
-        cali_data = forward_t_calib_data_generator(
-            args,
-            args.calib_num_samples,
-            "cuda",
-            args.calib_t_mode,
-            diffusion,
-            args.class_cond,
-        )
-    elif args.calib_im_mode == "noise_backward_t":
-        cali_data = backward_t_calib_data_generator(
-            cnn,
-            args,
-            args.calib_num_samples,
-            "cuda",
-            args.calib_t_mode,
-            diffusion,
-            loader,
-            args.class_cond,
-        )
-    else:
-        raise NotImplementedError
-
-    device = next(qnn.parameters()).device
-    # print('the quantized model is below!')
-    # Kwargs for weight rounding calibration
-    assert args.wwq is True
-    kwargs = dict(
-        cali_data=cali_data,
-        iters=args.iters_w,
-        weight=args.weight,
-        b_range=(args.b_start, args.b_end),
-        warmup=args.warmup,
-        opt_mode="mse",
-        wwq=args.wwq,
-        waq=args.waq,
-        order=args.order,
-        act_quant=args.act_quant,
-        lr=args.lr,
-        input_prob=args.input_prob,
-        keep_gpu=not args.keep_cpu,
-    )
-
-    if args.act_quant and args.order == "before" and args.awq is False:
-        print(f'Case 2: act_quant = True, order = before, awq= False')
-        """Case 2"""
-        set_act_quantize_params(
-            qnn, cali_data=cali_data, awq=args.awq, order=args.order
-        )
-
-    """init weight quantizer"""
-    set_weight_quantize_params(qnn)
-    print('quantized weight initialized: set_weight_quantize_params')
-    if not args.use_adaround:
-        print('Case 1.1: use_adaround = False')
-        set_act_quantize_params(
-            qnn, cali_data=cali_data, awq=args.awq, order=args.order
-        )
-        print('set_act_quantize_params completed')
-        qnn.set_quant_state(weight_quant=True, act_quant=args.act_quant)
-        print('set_quant_state completed')
-        return qnn
-    else:
-        print('Case 1.2: use_adaround = True')
-        def set_weight_act_quantize_params(module):
-            if isinstance(module, QuantModule):
-                layer_reconstruction(qnn, module, **kwargs)
-            elif isinstance(module, BaseQuantBlock):
-                block_reconstruction(qnn, module, **kwargs)
-            else:
-                raise NotImplementedError
-
-        def recon_model(model: nn.Module):
-            """
-            Block reconstruction. For the first and last layers, we can only apply layer reconstruction.
-            """
-            for name, module in model.named_children():
-                if isinstance(module, QuantModule):
-                    print("Reconstruction for layer {}".format(name))
-                    set_weight_act_quantize_params(module)
-                elif isinstance(module, BaseQuantBlock):
-                    print("Reconstruction for block {}".format(name))
-                    set_weight_act_quantize_params(module)
-                else:
-                    recon_model(module)
-
-        # Start calibration
-        logger.log('Starting Calibration..')
-        recon_model(qnn)
-
-        if args.act_quant and args.order == "after" and args.waq is False:
-            """Case 1"""
-            set_act_quantize_params(
-                qnn, cali_data=cali_data, awq=args.awq, order=args.order
-            )
-
-        qnn.set_quant_state(weight_quant=True, act_quant=args.act_quant)
-        return qnn
-
 def generate_t(args, t_mode, num_samples, diffusion, device):
     if t_mode == "1":
         t = torch.tensor([1] * num_samples, device=device)
@@ -380,6 +369,25 @@ def generate_t(args, t_mode, num_samples, diffusion, device):
         raise NotImplementedError
     return t.clamp(0, diffusion.num_timesteps - 1)
 
+
+def generate_calib_data(args, device, diffusion, loader):
+    """
+    Questa funzione genera il calibration dataset. 
+    Calibration Datas sono costituiti da:
+        - una noisy image
+        - input_semantic generato del blocco FDS
+        - timestep t
+    """
+    print(f'Generating Calibration Dataset of lenght {args.num_samples}...')
+
+    # Generate timestep t
+    t = generate_t(args, t_mode, num_samples, diffusion, device).long()
+    print(f'Timesteps Generated of shape {t.shape}')
+
+    '''
+    TODO: Agglomerare tutte le diverse funzioni in una.
+    '''
+
 # @pineatus
 def random_calib_data_generator(shape, num_samples, device, t_mode, diffusion, loader, args):
     """
@@ -391,39 +399,28 @@ def random_calib_data_generator(shape, num_samples, device, t_mode, diffusion, l
     """
     # add num_sample as first dimension for the calibration_data tensor
     # new_shape = (num_samples, *shape)
+
     # Generate random noisy images calibration data
     calib_data = torch.randn(shape, device=device)
+
     # Generate Timestesps
     t = generate_t(args, t_mode, num_samples, diffusion, device)
+
     # Generate Input_Semantics
     input_semantics = []
+
     for i, (batch, cond) in enumerate(loader):
         model_kwargs = preprocess_input_FDS(args, cond, num_classes=args.num_classes, one_hot_label=args.one_hot_label)
         input_semantics.append(model_kwargs['y'])
         if ((i+1) * args.batch_size >= num_samples):
             break
+
     semantics = torch.cat(input_semantics[:num_samples], dim=0)
     print(f'\ncalib data shapes: {calib_data.shape}')
     print(f't shape: {t.shape}')
     print(f'y shape: {semantics.shape}')
           
     return calib_data, t, semantics
-
-
-# def random_calib_data_generator(
-#     shape, num_samples, device, t_mode, diffusion, class_cond=True
-# ):
-#     calib_data = []
-#     for batch in range(num_samples):
-#         img = torch.randn(*shape, device=device)
-#         calib_data.append(img)
-#     t = generate_t(t_mode, num_samples, diffusion, device)
-#     t = diffusion._scale_timesteps(t)
-#     if class_cond:
-#         cls = torch.tensor([1] * num_samples, device=device).long()  # TODO class gen
-#         return torch.cat(calib_data, dim=0), t, cls
-#     else:
-#         return torch.cat(calib_data, dim=0), t
 
 
 def raw_calib_data_generator(
@@ -464,48 +461,12 @@ def forward_t_calib_data_generator(
     else:
         return x_t, t
 
-
-# def backward_t_calib_data_generator(
-#     model, args, num_samples, device, t_mode, diffusion, class_cond=True
-# ):
-#     model_kwargs = {}
-#     if class_cond:
-#         cls = torch.tensor([1] * num_samples, device=device).long()  # TODO class gen
-#         model_kwargs["y"] = cls
-#     loop_fn = (
-#         diffusion.ddim_sample_loop_progressive
-#         if args.use_ddim
-#         else diffusion.p_sample_loop_progressive
-#     )
-#     t = generate_t(args, t_mode, num_samples, diffusion, device).long()
-#     calib_data = None
-#     for now_rt, sample_t in enumerate(
-#         loop_fn(
-#             model,
-#             (num_samples, 3, args.image_size, args.image_size),
-#             clip_denoised=args.clip_denoised,
-#             model_kwargs=model_kwargs,
-#             device=device,
-#         )
-#     ):
-#         sample_t = sample_t["sample"]
-#         if calib_data is None:
-#             calib_data = torch.zeros_like(sample_t)
-#         mask = t == now_rt
-#         if mask.any():
-#             calib_data += sample_t * mask.float().view(-1, 1, 1, 1)
-#     calib_data = calib_data.to(device)
-#     t = diffusion._scale_timesteps(t)
-#     if class_cond:
-#         return calib_data, t, cls.to(device)
-#     else:
-#         return calib_data, t
-
 # @pineatus
 def backward_t_calib_data_generator(
     model, args, num_samples, device, t_mode, diffusion, loader, class_cond=True
 ):
     print('Backward Calib Data Generation...')
+
     # Generate timestep t
     t = generate_t(args, t_mode, num_samples, diffusion, device).long()
     print(f'Timesteps Generated of shape {t.shape}')
@@ -523,9 +484,6 @@ def backward_t_calib_data_generator(
         print(f'input_semantics shape = {model_kwargs["y"].shape}')
 
     # Generate sample 
-    """
-    TODO: the loop_fn is derived from PTQ4DM/improved-diffusion. Check compatibility with guided-diffusion
-    """
     loop_fn = (
         diffusion.ddim_sample_loop_progressive
         if args.use_ddim

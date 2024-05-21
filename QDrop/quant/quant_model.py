@@ -12,8 +12,9 @@ class QuantModel(nn.Module):
         act_quant_params: dict = {},
     ):
         super().__init__()
-        search_fold_and_remove_bn(model)
+        search_fold_and_remove_bn(model)    # @Pineatus: Non ho idea di cosa faccia.
         self.model = model
+        print('QuantModel: Init the model...')
         self.quant_module_refactor(self.model, weight_quant_params, act_quant_params)
 
     def quant_module_refactor(
@@ -28,6 +29,7 @@ class QuantModel(nn.Module):
         :param weight_quant_params: quantization parameters like n_bits for weight quantizer
         :param act_quant_params: quantization parameters like n_bits for activation quantizer
         """
+        print('Recursively replace the normal conv2d and Linear layer to QuantModule...')
         prev_quantmodule = None
         for name, child_module in module.named_children():
             if type(child_module) in specials:

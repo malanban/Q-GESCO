@@ -10,16 +10,19 @@ def set_act_quantize_params(
     cali_data,
     awq: bool = False,
     order: str = "before",
-    batch_size: int = 16,
+    batch_size: int = 1, # @Pineatus, (originally 16 or 32)
 ):
+    print(f'set_act_quantize_params(awq={awq}, order={order}) started')
     weight_quant, act_quant = act_get_quant_state(order, awq)
     module.set_quant_state(weight_quant, act_quant)
+    print(f'quant state set to weight_quant={weight_quant}, act_quant={act_quant}')
 
     for t in module.modules():
         if isinstance(t, (QuantModule, BaseQuantBlock)):
             t.act_quantizer.set_inited(False)
 
     """set or init step size and zero point in the activation quantizer"""
+    print("set or init step size and zero point in the activation quantizer...")
     if not isinstance(cali_data, (tuple, list)):
         batch_size = min(batch_size, cali_data.size(0))
         with torch.no_grad():

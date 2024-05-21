@@ -500,6 +500,7 @@ def backward_t_calib_data_generator(
             device=device,
         )
     ):
+        print(f'now_rt = {now_rt}')
         sample_t = sample_t["sample"]
         if calib_data is None:
             calib_data = torch.zeros_like(sample_t)

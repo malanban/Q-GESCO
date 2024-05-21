@@ -470,6 +470,7 @@ def backward_t_calib_data_generator(
     # Generate timestep t
     t = generate_t(args, t_mode, num_samples, diffusion, device).long()
     print(f'Timesteps Generated of shape {t.shape}')
+    print(t)
 
     # Generate conditional signal y
     model_kwargs = {}
@@ -500,11 +501,11 @@ def backward_t_calib_data_generator(
             device=device,
         )
     ):
-        print(f'now_rt = {now_rt}')
         sample_t = sample_t["sample"]
         if calib_data is None:
             calib_data = torch.zeros_like(sample_t)
         mask = t == now_rt
+        print(f'now_rt = {now_rt}, mask = {mask}')
         if mask.any():
             calib_data += sample_t * mask.float().view(-1, 1, 1, 1)
     calib_data = calib_data.to(device)

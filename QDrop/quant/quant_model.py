@@ -29,7 +29,6 @@ class QuantModel(nn.Module):
         :param weight_quant_params: quantization parameters like n_bits for weight quantizer
         :param act_quant_params: quantization parameters like n_bits for activation quantizer
         """
-        print('Recursively replace the normal conv2d and Linear layer to QuantModule...')
         prev_quantmodule = None
         for name, child_module in module.named_children():
             if type(child_module) in specials:

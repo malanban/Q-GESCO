@@ -93,14 +93,14 @@ def main():
     model = quant_model(args, model, diffusion, loader)
 
     # Save the Quantized Model
-    save_directory = '../drive/MyDrive/TESI/models'
-    model_filename = 'quantized_Cityscapes_ema_0.9999_190000.pt'
-    if not os.path.exists(save_directory):
-        os.makedirs(save_directory)
+    # save_directory = '../drive/MyDrive/TESI/models'
+    # model_filename = 'quantized_Cityscapes_ema_0.9999_190000.pt'
+    # if not os.path.exists(save_directory):
+    #     os.makedirs(save_directory)
 
-    model_save_path = os.path.join(save_directory, model_filename)
-    torch.save(model.state_dict(), model_save_path)
-    print(f'Modello quantizzato salvato con successo in: {model_save_path}')
+    # model_save_path = os.path.join(save_directory, model_filename)
+    # torch.save(model.state_dict(), model_save_path)
+    # print(f'Modello quantizzato salvato con successo in: {model_save_path}')
 
     # sample(args, model, diffusion, loader)
 
@@ -214,7 +214,7 @@ def quant_model(args, cnn, diffusion, loader):
         set_act_quantize_params(
             qnn, cali_data=cali_data, awq=args.awq, order=args.order
         )
-        print(f'set_act_quantize_params(awq={args.awq}, order={args.order}) completed')
+        print(f'set_act_quantize_params(awq={args.awq}, order={args.order}) completed\n')
         qnn.set_quant_state(weight_quant=True, act_quant=args.act_quant)
         print(f'set_quant_state completed: weight_quant = True, act_quant={args.act_quant}')
         return qnn
@@ -512,7 +512,6 @@ def backward_t_calib_data_generator(
         return calib_data, t, model_kwargs['y'].to(device)
     else:
         return calib_data, t
-
 
 def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
     

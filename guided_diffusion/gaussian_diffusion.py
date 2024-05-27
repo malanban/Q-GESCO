@@ -699,6 +699,9 @@ class GaussianDiffusion:
         else:
             img = th.randn(*shape, device=device)
         indices = list(range(self.num_timesteps))[::-1]
+        # @ Pineatus
+        if 'y' in model_kwargs:
+            model_kwargs['y'] = model_kwargs['y'].to(device)
 
         if progress:
             # Lazy import so that we don't depend on tqdm.

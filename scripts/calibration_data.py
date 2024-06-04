@@ -235,9 +235,9 @@ def create_argparser():
     parser.add_argument("--seed", type=int, default=1234, help="Random seed")
     
     # Calibration specific Configs:
-    parser.add_argument(
-        "--timesteps", type=int, default=1000, help="number of steps involved"
-    )
+    # parser.add_argument(
+    #     "--timesteps", type=int, default=1000, help="number of steps involved"
+    # )
     parser.add_argument(
         "--cali_n", type=int, default=1024, 
         help="number of samples for each timestep for qdiff reconstruction"
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     model.eval()
 
     print("Creating Data Loader...")
-    data = load_data(
+    data_loader = load_data(
         dataset_mode=args.dataset_mode,
         data_dir=args.data_dir,
         batch_size=args.batch_size,
@@ -286,4 +286,36 @@ if __name__ == "__main__":
 
     # Sampling Procedure:
     print("Start Sampling")
+    device = "cuda:0"
+    T = args.diffusion_steps    # Total Timesteps
+    N = args.cali_n             # Number of Samples for each Timestep
+    ds = int(T / args.cali_st)  # Sampling Interval
+    calib_data = None
+
+    loop_fn = (
+        diffusion.ddim_sample_loop_progressive
+        if args.use_ddim
+        else diffusion.p_sample_loop_progressive
+    )
+
+    for batch, (images, cond) in enumerate(data_loader):
+        # generate model_kwargs
+        model_kwargs = preprocess_input_FDS(args, cond, num_classes=args.num_classes, one_hot_label=args.one_hot_label)
+        model_kwargs['s'] = args.s
+
+        for t, sample_t in enumerate(
+            loop_fn(
+                model,
+                (args.batch_size, 3, args.image_size, args.image_size * 2),
+                clip_denoised=args.clip_denoised,
+                model_kwargs=model_kwargs,
+                device=device,
+                progress=True
+            )
+        ):
+            if (t + 1) % ds == 0:
+                sample_t['sample']
+
+
+
     print("Sampling Complete")

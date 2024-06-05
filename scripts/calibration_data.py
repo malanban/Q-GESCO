@@ -129,6 +129,7 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
     map_to_be_discarded = []
     map_to_be_preserved = []
     input_semantics = input_semantics.squeeze(0)
+    print(input_semantics.shape)
     for idx, segmap in enumerate(input_semantics.squeeze(0)):
         if 1 in segmap:
             map_to_be_preserved.append(idx)

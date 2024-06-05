@@ -8,8 +8,8 @@ import argparse
 import os
 
 import torch as th
-import torch.distributed as dist
-import torchvision as tv
+# import torch.distributed as dist
+# import torchvision as tv
 
 from guided_diffusion.image_datasets import load_data
 
@@ -290,19 +290,22 @@ if __name__ == "__main__":
     T = args.diffusion_steps    # Total Timesteps
     N = args.cali_n             # Number of Samples for each Timestep
     ds = int(T / args.cali_st)  # Sampling Interval
-    calib_data = None
-
+    assert()
     loop_fn = (
         diffusion.ddim_sample_loop_progressive
         if args.use_ddim
         else diffusion.p_sample_loop_progressive
     )
-
+    xs_l = []
+    ts_l = []
+    cs_l = []
     for batch, (images, cond) in enumerate(data_loader):
+        if (batch * args.batch_size >= args.cali_n):
+            break
+        print(f'batch {batch}:')
         # generate model_kwargs
         model_kwargs = preprocess_input_FDS(args, cond, num_classes=args.num_classes, one_hot_label=args.one_hot_label)
         model_kwargs['s'] = args.s
-
         for t, sample_t in enumerate(
             loop_fn(
                 model,
@@ -314,8 +317,17 @@ if __name__ == "__main__":
             )
         ):
             if (t + 1) % ds == 0:
-                sample_t['sample']
-
-
-
+                print('t = {t}')
+                xs_l.append(sample_t['sample'])
+                ts_l.append((th.ones(args.batch_size) * t).float() * (1000.0 / T))
+                cs_l.append(model_kwargs['y'])
+    data = {
+        'xs': th.cat(xs_l, 0),
+        'ts': th.cat(ts_l, 0),
+        'cs': th.cat(cs_l, 0)
+    }
     print("Sampling Complete")
+    print(f'xs: {data['xs'].shape}')
+    print(f'ts: {data['ts'].shape}')
+    print(f'cs: {data['cs'].shape}')
+    th.save(data, 'cali_data.pth')

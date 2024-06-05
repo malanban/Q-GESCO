@@ -821,9 +821,9 @@ class UNetModel(nn.Module):
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
 
         if self.num_classes is not None:
+            print((x.shape[0], self.num_classes, x.shape[2], x.shape[3]))
+            print(y.shape)
             if self.one_hot_label:
-                print((x.shape[0], self.num_classes, x.shape[2], x.shape[3]))
-                print(y.shape)
                 assert y.shape == (x.shape[0], self.num_classes, x.shape[2], x.shape[3])
             else:
                 assert y.shape == (x.shape[0], 2, x.shape[2], x.shape[3])

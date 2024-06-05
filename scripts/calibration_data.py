@@ -316,7 +316,7 @@ if __name__ == "__main__":
             )
         ):
             if (t + 1) % ds == 0:
-                print('t = {t}')
+                print(f't = {t}')
                 xs_l.append(sample_t['sample'])
                 ts_l.append((th.ones(args.batch_size) * t).float() * (1000.0 / T))
                 cs_l.append(model_kwargs['y'])

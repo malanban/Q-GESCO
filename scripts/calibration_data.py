@@ -139,6 +139,7 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
     if 'instance' in data:
         inst_map = data['instance']
         instance_edge_map = get_edges(inst_map)
+        print("instance edge map shape: ", instance_edge_map.shape)
         input_semantics = th.cat((input_semantics.unsqueeze(0), instance_edge_map), dim=1)
         #add instance map to map indexes
         map_to_be_preserved.append(num_classes)

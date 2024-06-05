@@ -290,7 +290,6 @@ if __name__ == "__main__":
     T = args.diffusion_steps    # Total Timesteps
     N = args.cali_n             # Number of Samples for each Timestep
     ds = int(T / args.cali_st)  # Sampling Interval
-    assert()
     loop_fn = (
         diffusion.ddim_sample_loop_progressive
         if args.use_ddim

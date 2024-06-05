@@ -125,7 +125,7 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
 #     print("label map shape:", label_map.shape)
 
     input_semantics = input_label.scatter_(1, label_map, 1.0)
-    print(input_semantics.shape)
+    # print(input_semantics.shape)
     map_to_be_discarded = []
     map_to_be_preserved = []
     input_semantics = input_semantics.squeeze(0)
@@ -144,7 +144,7 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
         map_to_be_preserved.append(num_classes)
         num_classes += 1
 
-    print(input_semantics.shape, len(map_to_be_preserved))
+    # print(input_semantics.shape, len(map_to_be_preserved))
 
     # input_semantics = input_semantics[map_to_be_preserved].unsqueeze(0)
     input_semantics = input_semantics[0][map_to_be_preserved]
@@ -199,7 +199,7 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
     #     plt.imshow(channel.numpy(), cmap="gray")
     #     plt.axis("off")
     # plt.savefig("./seg_map.png")
-
+    print(f'input_semantic: {input_semantics.shape}')
     return {'y': input_semantics}
 
 def get_edges(t):
@@ -330,3 +330,4 @@ if __name__ == "__main__":
     print(f'ts: {data["ts"].shape}')
     print(f'cs: {data["cs"].shape}')
     th.save(data, 'cali_data.pth')
+    print("Calibration Dataset saved in './cali_data.pth")

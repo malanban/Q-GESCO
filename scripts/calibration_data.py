@@ -122,10 +122,10 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
     # label_map = label.unsqueeze(0)
     bs, _, h, w = label_map.size()
     input_label = th.FloatTensor(bs, num_classes, h, w).zero_()
-#     print("label map shape:", label_map.shape)
+    print("label map shape:", label_map.shape)
 
     input_semantics = input_label.scatter_(1, label_map, 1.0)
-    # print(input_semantics.shape)
+    print(input_semantics.shape)
     map_to_be_discarded = []
     map_to_be_preserved = []
     input_semantics = input_semantics.squeeze(0)

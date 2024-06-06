@@ -114,7 +114,6 @@ def preprocess_input(args, data, num_classes, one_hot_label=True):
     return {'y': input_semantics_clean}
 
 def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
-    
     pool = "max"
     label_map = data['label'].long()
 
@@ -141,8 +140,8 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
         inst_map = data['instance']
         instance_edge_map = get_edges(inst_map)
         print("instance edge map shape: ", instance_edge_map.shape)
-        #: input_semantics = th.cat((input_semantics.unsqueeze(0), instance_edge_map), dim=1)
-        input_semantics = th.cat((input_semantics, instance_edge_map), dim=1)
+        : input_semantics = th.cat((input_semantics.unsqueeze(0), instance_edge_map), dim=1)
+        # input_semantics = th.cat((input_semantics, instance_edge_map), dim=1)
         #add instance map to map indexes
         map_to_be_preserved.append(num_classes)
         num_classes += 1

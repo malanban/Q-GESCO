@@ -125,11 +125,11 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
     print("label map shape:", label_map.shape)
 
     input_semantics = input_label.scatter_(1, label_map, 1.0)
-    print(input_semantics.shape)
+    print('is 1:', input_semantics.shape)
     map_to_be_discarded = []
     map_to_be_preserved = []
     input_semantics = input_semantics.squeeze(0)
-    print(input_semantics.shape)
+    print('is 2: ', input_semantics.shape)
     for idx, segmap in enumerate(input_semantics.squeeze(0)):
         if 1 in segmap:
             map_to_be_preserved.append(idx)
@@ -150,7 +150,7 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
     # print(input_semantics.shape, len(map_to_be_preserved))
 
     # input_semantics = input_semantics[map_to_be_preserved].unsqueeze(0)
-    input_semantics = input_semantics[0][map_to_be_preserved]
+    input_semantics = input_semantics[0][map_to_be_preserved] #: Perché 0 e non :bs?
 
 
     # if pool != None:
@@ -202,7 +202,7 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
     #     plt.imshow(channel.numpy(), cmap="gray")
     #     plt.axis("off")
     # plt.savefig("./seg_map.png")
-    print(f'input_semantic: {input_semantics.shape}')
+    print(f'input_semantic shape: {input_semantics.shape}')
     return {'y': input_semantics}
 
 def get_edges(t):

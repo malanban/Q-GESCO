@@ -140,7 +140,7 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
         inst_map = data['instance']
         instance_edge_map = get_edges(inst_map)
         print("instance edge map shape: ", instance_edge_map.shape)
-        : input_semantics = th.cat((input_semantics.unsqueeze(0), instance_edge_map), dim=1)
+        input_semantics = th.cat((input_semantics.unsqueeze(0), instance_edge_map), dim=1)
         # input_semantics = th.cat((input_semantics, instance_edge_map), dim=1)
         #add instance map to map indexes
         map_to_be_preserved.append(num_classes)
@@ -328,8 +328,8 @@ if __name__ == "__main__":
         'cs': th.cat(cs_l, 0)
     }
     print("Sampling Complete")
-    print(f'xs: {data["xs"].shape}')
-    print(f'ts: {data["ts"].shape}')
-    print(f'cs: {data["cs"].shape}')
+    print(f'xs shape: {data["xs"].shape}')
+    print(f'ts shape: {data["ts"].shape}')
+    print(f'cs shape: {data["cs"].shape}')
     th.save(data, 'cali_data.pth')
-    print("Calibration Dataset saved in './cali_data.pth")
+    print("Calibration Dataset saved in './cali_data.pth'")

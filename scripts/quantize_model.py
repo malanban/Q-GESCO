@@ -295,9 +295,9 @@ if __name__ == "__main__":
                         logger.info("Initializing weight quantization parameters")
                         qnn.set_quant_state(True, False)
                         if args.cond:
-                            _ = qnn(cali_xs[:4].cuda(), cali_ts[:4].cuda(), cali_cs[:4].cuda())
+                            _ = qnn(cali_xs[:1].cuda(), cali_ts[:1].cuda(), cali_cs[:1].cuda())
                         else:
-                            _ = qnn(cali_xs[:4].cuda(), cali_ts[:4].cuda())
+                            _ = qnn(cali_xs[:1].cuda(), cali_ts[:1].cuda())
                         logger.info("Initializing has done!")
 
                     # Kwargs for weight rounding calibration

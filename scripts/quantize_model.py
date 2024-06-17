@@ -135,6 +135,8 @@ def create_argparser():
     parser.add_argument(
         "--max_images", type=int, default=50000, help="number of images to sample"
     )
+    parser.add_argument("--use_pretrained", action="store_true")
+
 
     # qdiff specific configs
     parser.add_argument(
@@ -230,6 +232,7 @@ if __name__ == "__main__":
     if args.ptq:
         # Quantize the model
         if args.quant_mode == 'qdiff':
+                print('Starting Quantization Process')
                 wq_params = {'n_bits': args.weight_bit, 'channel_wise': True, 'scale_method': 'max'}
                 aq_params = {'n_bits': args.act_bit, 'symmetric': args.a_sym, 'channel_wise': False, 'scale_method': 'max', 'leaf_param': args.quant_act}
                 if args.resume:
@@ -243,6 +246,7 @@ if __name__ == "__main__":
                     sm_abit=args.sm_abit)
                 qnn.to(device)
                 qnn.eval()
+                print('Quant Model Created')
 
                 if args.resume:
                     image_size = args.image_size

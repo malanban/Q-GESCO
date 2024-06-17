@@ -159,8 +159,9 @@ class QuantResBlock(BaseQuantBlock, TimestepBlock):
         if emb is None:
             assert(len(x) == 2)
             x, emb = x
-        assert x.shape[2] == x.shape[3] #: Potenziale Problema con Semantic Diffusion
-
+        # assert x.shape[2] == x.shape[3]   #: Potenziale Problema con Semantic Diffusion
+        assert x.shape[3] == x.shape[2] * 2 
+        
         if self.updown:
             in_rest, in_conv = self.in_layers[:-1], self.in_layers[-1]
             h = in_rest(x)

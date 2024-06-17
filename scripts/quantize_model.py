@@ -3,7 +3,7 @@ Generate a large batch of image samples from a model and save them as a large
 numpy array. This can be used to produce samples for FID evaluation.
 """
 
-import argparse, os, gc
+import argparse, os, datetime
 import logging
 import numpy as np
 import tqdm
@@ -203,12 +203,39 @@ def create_argparser():
 
     return parser
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
     # parse_args
     args = create_argparser().parse_args()
-
+    
     # fix random seed
     seed_everything(args.seed)
+
+    # setup logger
+    now = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    logdir = os.path.join(args.logdir, "samples", now)
+    os.makedirs(logdir)
+    args.logdir = logdir
+    log_path = os.path.join(logdir, "run.log")
+    logging.basicConfig(
+        format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+        datefmt='%m/%d/%Y %H:%M:%S',
+        level=logging.INFO,
+        handlers=[
+            logging.FileHandler(log_path),
+            logging.StreamHandler()
+        ]
+    )
+    logger = logging.getLogger(__name__)
+
+    logger.info(75 * "=")
+    logger.info(f"Host {os.uname()[1]}")
+    logger.info("logging to:")
+    imglogdir = os.path.join(logdir, "img")
+    args.image_folder = imglogdir
+
+    os.makedirs(imglogdir)
+    logger.info(logdir)
+    logger.info(75 * "=")
 
     # set the device
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -260,8 +287,8 @@ if __name__ == "__main__":
                     cali_xs = cali_data['xs']
                     cali_ts = cali_data['ts']
                     if args.cond:
-                        logger.info(f"Calibration data shape: {cali_data[0].shape} {cali_data[1].shape} {cali_data[2].shape}")
                         cali_cs = cali_data['cs']
+                        logger.info(f"Calibration data shape: {cali_xs.shape} {cali_ts.shape} {cali_cs.shape}")
                     if args.resume_w:
                         resume_cali_model(qnn, args.cali_ckpt, (cali_xs, cali_ts, cali_cs), False, cond=args.cond)
                     else:

@@ -399,7 +399,7 @@ class SDMResBlock(CondTimestepBlock):
         :return: an [N x C x ...] Tensor of outputs.
         """
         return checkpoint(
-            self._forward, (x, cond, emb, split=split), self.parameters(), self.use_checkpoint
+            self._forward, (x, cond, emb, split), self.parameters(), self.use_checkpoint
         )
 
     def _forward(self, x, cond, emb, split=0):

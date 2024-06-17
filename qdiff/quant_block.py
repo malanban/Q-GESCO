@@ -6,12 +6,12 @@ import torch.nn as nn
 from einops import rearrange, repeat
 
 from qdiff.quant_layer import QuantModule, UniformAffineQuantizer, StraightThrough
-from ldm.modules.diffusionmodules.openaimodel import AttentionBlock, ResBlock, TimestepBlock, checkpoint
+from guided_diffusion.unet import AttentionBlock, ResBlock, SDMResBlock, TimestepBlock, checkpoint
+# from ldm.modules.diffusionmodules.openaimodel import AttentionBlock, ResBlock, TimestepBlock, checkpoint
 from ldm.modules.diffusionmodules.openaimodel import QKMatMul, SMVMatMul
 from ldm.modules.attention import BasicTransformerBlock
 from ldm.modules.attention import exists, default
-
-from ddim.models.diffusion import ResnetBlock, AttnBlock, nonlinearity #: Da Scambiare con guided-diffusion
+from ddim.models.diffusion import ResnetBlock, AttnBlock, nonlinearity
 
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,81 @@ class BaseQuantBlock(nn.Module):
             if isinstance(m, QuantModule):
                 m.set_quant_state(weight_quant, act_quant)
 
+class QuantSDMResBlock(BaseQuantBlock, TimestepBlock):
+    def __init__(
+        self, res: SDMResBlock, act_quant_params: dict = {}):
+        super().__init__(act_quant_params)
+        self.channels = res.channels
+        self.emb_channels = res.emb_channels
+        self.emb_channels = res.emb_channels
+        self.dropout = res.dropout
+        self.out_channels = res.out_channels
+        self.use_conv = res.use_conv
+        self.use_checkpoint = res.use_checkpoint
+        self.use_scale_shift_norm = res.use_scale_shift_norm
+        
+        self.in_layers = res.in_layers
 
+        self.updown = res.updown
+
+        self.h_upd = res.h_upd
+        self.x_upd = res.x_upd
+
+        self.emb_layers = res.emb_layers
+        self.out_norm = res.out_norm  #: Aggiunto da SDM
+        self.out_layers = res.out_layers
+
+        self.skip_connection = res.skip_connection
+
+    def forward(self, x, cond, emb=None, split=0):
+        """
+        Apply the block to a Tensor, conditioned on a timestep embedding.
+        :param x: an [N x C x ...] Tensor of features.
+        :param emb: an [N x emb_channels] Tensor of timestep embeddings.
+        :return: an [N x C x ...] Tensor of outputs.
+        """
+        if split != 0 and self.skip_connection.split == 0:
+            return checkpoint(
+                self._forward, (x, cond, emb, split), self.parameters(), self.use_checkpoint
+            )
+        return checkpoint(
+                self._forward, (x, cond, emb), self.parameters(), self.use_checkpoint
+            )
+    
+    def _forward(self, c, cond, emb):
+        # print(f"x shape {x.shape} emb shape {emb.shape}")
+        if emb is None:
+            assert(len(x) == 2)
+            x, emb = x
+        assert x.shape[2] == x.shape[3] #: Potenziale Problema con Semantic Diffusion
+        if self.updown:
+            in_rest, in_conv = self.in_layers[:-1], self.in_layers[-1]
+            h = self.in_norm(x, cond)
+            h = in_rest(h)
+            h = self.h_upd(h)
+            x = self.x_upd(x)
+            h = in_conv(h)
+        else:
+            h = self.in_norm(x, cond)
+            h = self.in_layers(h)
+        emb_out = self.emb_layers(emb).type(h.dtype)
+        while len(emb_out.shape) < len(h.shape):
+            emb_out = emb_out[..., None]
+        if self.use_scale_shift_norm:
+            scale, shift = th.chunk(emb_out, 2, dim=1)
+            h = self.out_norm(h, cond) * (1 + scale) + shift
+            h = self.out_layers(h)
+        else:
+            h = h + emb_out
+            h = self.out_norm(h, cond)
+            h = self.out_layers(h)
+
+        if split>0: #: Added From qdiff
+            return self.skip_connection(x,split=split) + h
+        else:
+            return self.skip_connection(x) + h
+
+    
 class QuantResBlock(BaseQuantBlock, TimestepBlock):
     def __init__(
         self, res: ResBlock, act_quant_params: dict = {}):
@@ -85,7 +159,7 @@ class QuantResBlock(BaseQuantBlock, TimestepBlock):
         if emb is None:
             assert(len(x) == 2)
             x, emb = x
-        assert x.shape[2] == x.shape[3]
+        assert x.shape[2] == x.shape[3] #: Potenziale Problema con Semantic Diffusion
 
         if self.updown:
             in_rest, in_conv = self.in_layers[:-1], self.in_layers[-1]
@@ -389,6 +463,7 @@ class QuantAttnBlock(BaseQuantBlock):
 def get_specials(quant_act=False):
     specials = {
         ResBlock: QuantResBlock,
+        SDMResBlock: QuantSDMResBlock,
         BasicTransformerBlock: QuantBasicTransformerBlock,
         ResnetBlock: QuantResnetBlock,
         AttnBlock: QuantAttnBlock,
@@ -396,6 +471,6 @@ def get_specials(quant_act=False):
     if quant_act:
         specials[QKMatMul] = QuantQKMatMul
         specials[SMVMatMul] = QuantSMVMatMul
-    else:
+    else:   # Check QKMatMul!
         specials[AttentionBlock] = QuantAttentionBlock
     return specials

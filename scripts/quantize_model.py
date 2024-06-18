@@ -240,7 +240,7 @@ if __name__ == "__main__":
     # set the device
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    # Instanziate the Model
+    # Instanziate the GESCO Pretrained Model
     print("Creating Model and Diffusion...")
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
@@ -252,7 +252,7 @@ if __name__ == "__main__":
     model.load_state_dict(new_state_dict)
     # model.load_state_dict(th.load(args.model_path))
     if args.use_fp16:
-        model.convert_to_fp16() #: conflitto? 
+        model.convert_to_fp16() #: potenziale conflitto
     model.to(device)
     model.eval()
 
@@ -268,6 +268,7 @@ if __name__ == "__main__":
                     aq_params['scale_method'] = 'max'
                 if args.resume_w:
                     wq_params['scale_method'] = 'max'
+                # Instantiate Quant Model (Wrapper)    
                 qnn = QuantModel(
                     model=model, weight_quant_params=wq_params, act_quant_params=aq_params, 
                     sm_abit=args.sm_abit)
@@ -282,13 +283,12 @@ if __name__ == "__main__":
                     cali_data = (torch.randn(1, channels, image_size, image_size*2), torch.randint(0, 1000, (1,)))
                     #: Serve il segnale di condizionamento?
                 else:
-                    logger.info(f"Sampling data from {args.cali_st} timesteps for calibration")
+                    logger.info(f"Loading {args.cali_n} data for {args.cali_st} timesteps for calibration")
                     cali_data = torch.load(args.cali_data_path)
                     cali_xs = cali_data['xs']
                     cali_ts = cali_data['ts']
-                    if args.cond:
-                        cali_cs = cali_data['cs']
-                        logger.info(f"Calibration data shape: {cali_xs.shape} {cali_ts.shape} {cali_cs.shape}")
+                    cali_cs = cali_data['cs'] if args.cond else None                        
+                    logger.info(f"Calibration data shape: {cali_xs.shape} {cali_ts.shape} {cali_cs.shape}")
                     if args.resume_w:
                         resume_cali_model(qnn, args.cali_ckpt, (cali_xs, cali_ts, cali_cs), False, cond=args.cond)
                     else:

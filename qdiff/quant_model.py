@@ -67,7 +67,7 @@ class QuantModel(nn.Module):
 
     # def forward(self, x, timesteps=None, context=None):
     #     return self.model(x, timesteps, context)
-    #: Copiato da PTQ4DM
+    #:! Copiato da PTQ4DM
     def forward(self, *args, **kwargs):
         if len(args)==1 and type(args[0]) in [tuple,list]:
             return self.model(*args[0])

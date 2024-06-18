@@ -71,7 +71,6 @@ class QuantSDMResBlock(BaseQuantBlock, TimestepBlock):
         Apply the block to a Tensor, conditioned on a timestep embedding.
         :param x: an [N x C x ...] Tensor of features.
         :param emb: an [N x emb_channels] Tensor of timestep embeddings.
-        :param cond: an [] Tensor of conditional embeddings
         :return: an [N x C x ...] Tensor of outputs.
         """
         if split != 0 and self.skip_connection.split == 0:
@@ -82,13 +81,13 @@ class QuantSDMResBlock(BaseQuantBlock, TimestepBlock):
                 self._forward, (x, cond, emb), self.parameters(), self.use_checkpoint
             )
     
-    def _forward(self, x, cond, emb):
+    def _forward(self, x, cond, emb, split=0):
         print(f"x type {type(x)} cond type {type(cond)} emb type {type(emb)}")
         print(f"x shape {x.shape} cond shape {cond.shape}")
-        if emb is None:
-            assert(len(x) == 2)
-            x, emb = x
-        assert x.shape[2] == x.shape[3] #: Potenziale Problema con Semantic Diffusion
+        # if emb is None:
+        #     assert(len(x) == 2)
+        #     x, emb = x
+        # assert x.shape[2] == x.shape[3] #: Potenziale Problema con Semantic Diffusion
         if self.updown:
             in_rest, in_conv = self.in_layers[:-1], self.in_layers[-1]
             h = self.in_norm(x, cond)
@@ -111,7 +110,7 @@ class QuantSDMResBlock(BaseQuantBlock, TimestepBlock):
             h = self.out_norm(h, cond)
             h = self.out_layers(h)
 
-        if split>0: #: Added From qdiff
+        if split > 0: #: Added From qdiff
             return self.skip_connection(x,split=split) + h
         else:
             return self.skip_connection(x) + h

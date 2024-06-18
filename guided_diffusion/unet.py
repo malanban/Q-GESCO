@@ -403,6 +403,8 @@ class SDMResBlock(CondTimestepBlock):
         )
 
     def _forward(self, x, cond, emb, split=0):
+        print(f"x type {type(x)} cond type {type(cond)} emb type {type(emb)}")
+        print(f"x shape {x.shape} cond shape {cond.shape}")
         if self.updown:
             in_rest, in_conv = self.in_layers[:-1], self.in_layers[-1]
             h = self.in_norm(x, cond)

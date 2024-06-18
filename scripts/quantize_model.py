@@ -284,7 +284,7 @@ if __name__ == "__main__":
                     #: Serve il segnale di condizionamento?
                 else:
                     logger.info(f"Loading {args.cali_n} data for {args.cali_st} timesteps for calibration")
-                    cali_data = torch.load(args.cali_data_path)
+                    cali_data = torch.load(args.cali_data_path, map_location='cpu')
                     cali_xs = cali_data['xs']
                     cali_ts = cali_data['ts']
                     cali_cs = cali_data['cs'] if args.cond else None                        

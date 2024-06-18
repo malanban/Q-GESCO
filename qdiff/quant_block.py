@@ -71,6 +71,7 @@ class QuantSDMResBlock(BaseQuantBlock, TimestepBlock):
         Apply the block to a Tensor, conditioned on a timestep embedding.
         :param x: an [N x C x ...] Tensor of features.
         :param emb: an [N x emb_channels] Tensor of timestep embeddings.
+        :param cond: an [] Tensor of conditional embeddings
         :return: an [N x C x ...] Tensor of outputs.
         """
         if split != 0 and self.skip_connection.split == 0:
@@ -82,7 +83,7 @@ class QuantSDMResBlock(BaseQuantBlock, TimestepBlock):
             )
     
     def _forward(self, x, cond, emb):
-        # print(f"x shape {x.shape} emb shape {emb.shape}")
+        print(f"x shape {x.shape} cond shape {cond.shape} emb shape {emb.shape}")
         if emb is None:
             assert(len(x) == 2)
             x, emb = x

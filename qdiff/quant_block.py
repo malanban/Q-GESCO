@@ -81,7 +81,7 @@ class QuantSDMResBlock(BaseQuantBlock, TimestepBlock):
                 self._forward, (x, cond, emb), self.parameters(), self.use_checkpoint
             )
     
-    def _forward(self, c, cond, emb):
+    def _forward(self, x, cond, emb):
         # print(f"x shape {x.shape} emb shape {emb.shape}")
         if emb is None:
             assert(len(x) == 2)

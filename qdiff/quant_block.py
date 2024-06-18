@@ -46,7 +46,6 @@ class QuantSDMResBlock(BaseQuantBlock, TimestepBlock):
         super().__init__(act_quant_params)
         self.channels = res.channels
         self.emb_channels = res.emb_channels
-        self.emb_channels = res.emb_channels
         self.dropout = res.dropout
         self.out_channels = res.out_channels
         self.use_conv = res.use_conv
@@ -61,7 +60,8 @@ class QuantSDMResBlock(BaseQuantBlock, TimestepBlock):
         self.x_upd = res.x_upd
 
         self.emb_layers = res.emb_layers
-        self.out_norm = res.out_norm  #: Aggiunto da SDM
+        self.in_norm = res.in_norm      #: Aggiunto da SDM
+        self.out_norm = res.out_norm    #: Aggiunto da SDM
         self.out_layers = res.out_layers
 
         self.skip_connection = res.skip_connection

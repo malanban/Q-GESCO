@@ -288,7 +288,7 @@ if __name__ == "__main__":
                     cali_xs = cali_data['xs']
                     cali_ts = cali_data['ts']
                     cali_cs = cali_data['cs'] if args.cond else None                        
-                    logger.info(f"Calibration data shape: {cali_xs.shape} {cali_ts.shape} {cali_cs.shape}")
+                    logger.info(f"Calibration data shape: {cali_xs.shape} {cali_ts.shape} {cali_cs.shape if args.cond else None}")
                     if args.resume_w:
                         resume_cali_model(qnn, args.cali_ckpt, (cali_xs, cali_ts, cali_cs), False, cond=args.cond)
                     else:

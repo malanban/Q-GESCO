@@ -6,7 +6,7 @@ import torch.nn as nn
 from einops import rearrange, repeat
 
 from qdiff.quant_layer import QuantModule, UniformAffineQuantizer, StraightThrough
-from guided_diffusion.unet import AttentionBlock, ResBlock, SDMResBlock, TimestepBlock, checkpoint
+from guided_diffusion.unet import AttentionBlock, ResBlock, SDMResBlock, TimestepBlock, CondTimestepBlock, checkpoint
 # from ldm.modules.diffusionmodules.openaimodel import AttentionBlock, ResBlock, TimestepBlock, checkpoint
 from ldm.modules.diffusionmodules.openaimodel import QKMatMul, SMVMatMul
 from ldm.modules.attention import BasicTransformerBlock
@@ -40,7 +40,7 @@ class BaseQuantBlock(nn.Module):
             if isinstance(m, QuantModule):
                 m.set_quant_state(weight_quant, act_quant)
 
-class QuantSDMResBlock(BaseQuantBlock, TimestepBlock):
+class QuantSDMResBlock(BaseQuantBlock, CondTimestepBlock):
     def __init__(
         self, res: SDMResBlock, act_quant_params: dict = {}):
         super().__init__(act_quant_params)

@@ -81,7 +81,7 @@ class QuantSDMResBlock(BaseQuantBlock, TimestepBlock):
                 self._forward, (x, cond, emb), self.parameters(), self.use_checkpoint
             )
     
-    def _forward(self, x, cond, emb, split=0):
+    def _forward(self, x, cond, emb=None, split=0):
         print(f"x type {type(x)} cond type {type(cond)} emb type {type(emb)}")
         print(f"x shape {x.shape} cond shape {cond.shape}")
         # if emb is None:

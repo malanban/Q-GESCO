@@ -82,8 +82,6 @@ class QuantSDMResBlock(BaseQuantBlock, CondTimestepBlock):
             )
     
     def _forward(self, x, cond, emb=None, split=0):
-        print(f"x type {type(x)} cond type {type(cond)} emb type {type(emb)}")
-        print(f"x shape {x.shape} cond shape {cond.shape}")
         # if emb is None:
         #     assert(len(x) == 2)
         #     x, emb = x

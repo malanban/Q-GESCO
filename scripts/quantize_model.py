@@ -251,7 +251,8 @@ if __name__ == "__main__":
     new_state_dict = {key.replace('model.', ''): value for key, value in checkpoint.items()}
     model.load_state_dict(new_state_dict)
     # model.load_state_dict(th.load(args.model_path))
-    # if args.use_fp16:
+    if args.use_fp16:
+        model.convert_to_fp32()
         # model.convert_to_fp16() #: potenziale conflitto
     model.to(device)
     model.eval()

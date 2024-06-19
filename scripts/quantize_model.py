@@ -304,7 +304,7 @@ if __name__ == "__main__":
                     kwargs = dict(
                         cali_data=cali_data, batch_size=args.cali_batch_size, 
                         iters=args.cali_iters, weight=0.01, asym=True, b_range=(20, 2),
-                        warmup=0.2, act_quant=False, opt_mode='mse'
+                        warmup=0.2, act_quant=False, opt_mode='mse', cond=args.cond
                     )
 
                     def recon_model(model):
@@ -374,7 +374,7 @@ if __name__ == "__main__":
                         if isinstance(m, AdaRoundQuantizer):
                             m.zero_point = nn.Parameter(m.zero_point)
                             m.delta = nn.Parameter(m.delta)
-                        elif isinstance(m, UniformAffineQuantizer) and self.args.quant_act:
+                        elif isinstance(m, UniformAffineQuantizer) and args.quant_act:
                             if m.zero_point is not None:
                                 if not torch.is_tensor(m.zero_point):
                                     m.zero_point = nn.Parameter(torch.tensor(float(m.zero_point)))

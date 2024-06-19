@@ -302,7 +302,7 @@ if __name__ == "__main__":
 
                     # Kwargs for weight rounding calibration
                     kwargs = dict(
-                        cali_data=cali_data, batch_size=args.cali_batch_size, 
+                        cali_data=(cali_xs, cali_ts, cali_cs), batch_size=args.cali_batch_size, 
                         iters=args.cali_iters, weight=0.01, asym=True, b_range=(20, 2),
                         warmup=0.2, act_quant=False, opt_mode='mse', cond=args.cond
                     )

@@ -338,7 +338,7 @@ if __name__ == "__main__":
                         # Initialize activation quantization parameters
                         qnn.set_quant_state(True, True)
                         with torch.no_grad():
-                            inds = np.random.choice(cali_xs.shape[0], 64, replace=False)
+                            inds = np.random.choice(cali_xs.shape[0], 1, replace=False)
                             if args.cond:
                                 _ = qnn(cali_xs[inds].cuda(), cali_ts[inds].cuda(), cali_cs[inds].cuda())
                             else:    
@@ -347,19 +347,19 @@ if __name__ == "__main__":
                             if args.running_stat:
                                 logger.info('Running stat for activation quantization')
                                 qnn.set_running_stat(True)
-                                for i in range(int(cali_xs.size(0) / 64)):
+                                for i in range(int(cali_xs.size(0) / 1)):
                                     if args.cond:
                                         _ = qnn(
                                                 (
-                                                cali_xs[i * 64:(i + 1) * 64].to(device), 
-                                                cali_ts[i * 64:(i + 1) * 64].to(device),
-                                                cali_cs[i * 64:(i + 1) * 64].to(device)
+                                                cali_xs[i * 1:(i + 1) * 1].to(device), 
+                                                cali_ts[i * 1:(i + 1) * 1].to(device),
+                                                cali_cs[i * 1:(i + 1) * 1].to(device)
                                                 )
                                             )
                                     else:
                                         _ = qnn(
-                                            (cali_xs[i * 64:(i + 1) * 64].to(device), 
-                                            cali_ts[i * 64:(i + 1) * 64].to(device)))
+                                            (cali_xs[i * 1:(i + 1) * 1].to(device), 
+                                            cali_ts[i * 1:(i + 1) * 1].to(device)))
                                 qnn.set_running_stat(False)
                         
                         kwargs = dict(

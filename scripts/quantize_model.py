@@ -381,7 +381,7 @@ if __name__ == "__main__":
                                     m.zero_point = nn.Parameter(torch.tensor(float(m.zero_point)))
                                 else:
                                     m.zero_point = nn.Parameter(m.zero_point)
-                    torch.save(qnn.state_dict(), os.path.join(args.logdir, "quantized_ckpt.pth"))
+                    torch.save(qnn.state_dict(), os.path.join(args.logdir, "quantized_model.pth"))
 
 
 

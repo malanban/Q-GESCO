@@ -41,8 +41,6 @@ For ADE20K: `--dataset_mode ade20k`, `--image_size 256`, `--num_classes 151`, `-
 #### Sample from GESCO
 
 * Train your own model or download our pretrained weights [here](https://drive.google.com/drive/folders/1MwDLhTM3MbhEm7z42zaJ0aITgPFxg-VT?usp=sharing).
-* Download the calibration Dataset (Cityscapes) [here](https://drive.google.com/file/d/1Su6rQ_ExUnNAj7srACu8v-lqdccATB-4/view?usp=sharing)
-* copy both files in the main directory
 * Run the following command:
 
 ```

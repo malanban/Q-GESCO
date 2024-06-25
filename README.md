@@ -1,7 +1,7 @@
 ## QGESCO:
 
 ### Quantize GESCO
-* Train your own model or download our pretrained weights of GESCO [here](https://drive.google.com/drive/folders/1MwDLhTM3MbhEm7z42zaJ0aITgPFxg-VT?usp=sharing).
+* Train your own model or download our pretrained weights of GESCO [here](https://drive.google.com/file/d/1lW8J4gcZ3SS9r-kpEBMrVUfbC6mNLUP4/view?usp=drive_link).
 * Download the Calibration Dataset (Cityscapes) [here](https://drive.google.com/file/d/1Su6rQ_ExUnNAj7srACu8v-lqdccATB-4/view?usp=sharing)
 * save both files in the project directory
 * Install the file `requirements.txt`

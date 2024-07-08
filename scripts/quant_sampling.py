@@ -380,7 +380,7 @@ if __name__ == "__main__":
                 # random calibration data
                 cali_xs = torch.randn(1, channels, image_size, image_size*2)
                 cali_ts = torch.randint(0, 1000, (1,))
-                cali_cs = preprocess_input_FDS(args, cali_xs, args.num_classes, one_hot_label=args.one_hot_label) if args.cond else None
+                cali_cs = torch.randn(1, args.num_classes + 1, image_size, image_size*2)
                 resume_cali_model(qnn, args.cali_ckpt, (cali_xs, cali_ts, cali_cs), quant_act=args.quant_act, cond=args.cond)
             else:
                 logger.info(f"Loading {args.cali_n} data for {args.cali_st} timesteps for calibration")
@@ -485,13 +485,6 @@ if __name__ == "__main__":
             model.to(device)
             model.eval()
     # Sampling Images  
-    print("Generating image samples for FID evaluation.")
-    image_path = os.path.join(args.results_path, 'images')
-    os.makedirs(image_path, exist_ok=True)
-    label_path = os.path.join(args.results_path, 'labels')
-    os.makedirs(label_path, exist_ok=True)
-    sample_path = os.path.join(args.results_path, 'samples')
-    os.makedirs(sample_path, exist_ok=True)
 
     print("creating data loader...")
     data = load_data(
@@ -505,6 +498,14 @@ if __name__ == "__main__":
         random_flip=False,
         is_train=False
     )
+    image_path = os.path.join(args.results_path, 'images')
+    os.makedirs(image_path, exist_ok=True)
+    label_path = os.path.join(args.results_path, 'labels')
+    os.makedirs(label_path, exist_ok=True)
+    sample_path = os.path.join(args.results_path, 'samples')
+    os.makedirs(sample_path, exist_ok=True)
+    
+    print("Generating image samples for FID evaluation.")
     all_samples = []
     for i, (batch, cond) in enumerate(data):
         image = ((batch + 1.0) / 2.0).to(device)

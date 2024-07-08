@@ -380,8 +380,8 @@ if __name__ == "__main__":
                 # random calibration data
                 cali_xs = torch.randn(1, channels, image_size, image_size*2)
                 cali_ts = torch.randint(0, 1000, (1,))
-                cali_cs = preprocess_input_FDS(args, cali_xs, args.num_classes, one_hot_label=args.one_hot_label)
-                resume_cali_model(qnn, args.cali_ckpt, (cali_xs, cali_ts, cali_cs), quant_act=args.quant_act, False, cond=args.cond)
+                cali_cs = preprocess_input_FDS(args, cali_xs, args.num_classes, one_hot_label=args.one_hot_label) if args.cond else None
+                resume_cali_model(qnn, args.cali_ckpt, (cali_xs, cali_ts, cali_cs), quant_act=args.quant_act, cond=args.cond)
             else:
                 logger.info(f"Loading {args.cali_n} data for {args.cali_st} timesteps for calibration")
                 cali_data = torch.load(args.cali_data_path, map_location='cpu')

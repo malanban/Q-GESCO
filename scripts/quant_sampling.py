@@ -378,9 +378,10 @@ if __name__ == "__main__":
                 image_size = args.image_size
                 channels = args.num_channels
                 # random calibration data
-                cali_data = (torch.randn(1, channels, image_size, image_size*2), torch.randint(0, 1000, (1,)))
-                #: Serve il segnale di condizionamento?
-                resume_cali_model(qnn, args.cali_ckpt, cali_data, args.quant_act, "qdiff", cond=False)
+                cali_xs = torch.randn(1, channels, image_size, image_size*2)
+                cali_ts = torch.randint(0, 1000, (1,))
+                cali_cs = preprocess_input_FDS(args, cali_xs, args.num_classes, one_hot_label=args.one_hot_label)
+                resume_cali_model(qnn, args.cali_ckpt, (cali_xs, cali_ts, cali_cs), quant_act=args.quant_act, False, cond=args.cond)
             else:
                 logger.info(f"Loading {args.cali_n} data for {args.cali_st} timesteps for calibration")
                 cali_data = torch.load(args.cali_data_path, map_location='cpu')
@@ -389,7 +390,7 @@ if __name__ == "__main__":
                 cali_cs = cali_data['cs'] if args.cond else None                        
                 logger.info(f"Calibration data shape: {cali_xs.shape} {cali_ts.shape} {cali_cs.shape if args.cond else None}")
                 if args.resume_w:
-                    resume_cali_model(qnn, args.cali_ckpt, (cali_xs, cali_ts, cali_cs), False, cond=args.cond)
+                    resume_cali_model(qnn, args.cali_ckpt, (cali_xs, cali_ts, cali_cs), quant_act=args.quant_act, cond=args.cond)
                 else:
                     logger.info("Initializing weight quantization parameters")
                     qnn.set_quant_state(True, False)
@@ -530,7 +531,7 @@ if __name__ == "__main__":
             base_filename = os.path.splitext(os.path.basename(cond['path'][j]))[0]
             
             image_save_path = os.path.join(image_path, base_filename + '.png')
-            sample_save_path = os.path.join(sample_path + "_SNR" + str(args.snr), base_filename + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png')
+            sample_save_path = os.path.join(sample_path, base_filename + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png')
             label_save_path = os.path.join(label_path, base_filename + '.png')
 
             tv.utils.save_image(image[j], image_save_path)

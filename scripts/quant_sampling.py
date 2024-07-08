@@ -380,7 +380,8 @@ if __name__ == "__main__":
                 # random calibration data
                 cali_xs = torch.randn(1, channels, image_size, image_size*2)
                 cali_ts = torch.randint(0, 1000, (1,))
-                cali_cs = torch.randn(1, args.num_classes + 1, image_size, image_size*2)
+                cali_cs = torch.randn(1, (args.num_classes + 1), image_size, image_size*2)
+                logger.info(f"Calibration data shape: {cali_xs.shape} {cali_ts.shape} {cali_cs.shape if args.cond else None}")
                 resume_cali_model(qnn, args.cali_ckpt, (cali_xs, cali_ts, cali_cs), quant_act=args.quant_act, cond=args.cond)
             else:
                 logger.info(f"Loading {args.cali_n} data for {args.cali_st} timesteps for calibration")
@@ -504,7 +505,7 @@ if __name__ == "__main__":
     os.makedirs(label_path, exist_ok=True)
     sample_path = os.path.join(args.results_path, 'samples')
     os.makedirs(sample_path, exist_ok=True)
-    
+
     print("Generating image samples for FID evaluation.")
     all_samples = []
     for i, (batch, cond) in enumerate(data):

@@ -376,9 +376,9 @@ if __name__ == "__main__":
 
             if args.resume:
                 image_size = args.image_size
-                channels = args.num_channels
+                # channels = args.num_channels
                 # random calibration data
-                cali_xs = torch.randn(1, channels, image_size, image_size*2)
+                cali_xs = torch.randn(1, 3, image_size, image_size*2)
                 cali_ts = torch.randint(0, 1000, (1,))
                 cali_cs = torch.randn(1, (args.num_classes + 1), image_size, image_size*2)
                 logger.info(f"Calibration data shape: {cali_xs.shape} {cali_ts.shape} {cali_cs.shape if args.cond else None}")

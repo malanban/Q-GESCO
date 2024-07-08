@@ -32,7 +32,6 @@ def save_inp_oup_data(model: QuantModel, layer: Union[QuantModule, BaseQuantBloc
     :param is_sm: avoid OOM when caching n^2 attention matrix when n is large
     :return: input and output data
     """
-    print(f"batch size= {batch_size}")
     device = next(model.parameters()).device
     get_inp_out = GetLayerInpOut(model, layer, device=device, asym=asym, act_quant=act_quant)
     cached_batches = []
@@ -44,9 +43,7 @@ def save_inp_oup_data(model: QuantModel, layer: Union[QuantModule, BaseQuantBloc
     else:
         cali_xs, cali_ts, cali_conds = cali_data
 
-    scaling_factor = 4 
     if is_sm:
-        
         logger.info("Checking if attention is too large...")
         if not cond:
             test_inp, test_out = get_inp_out(
@@ -65,23 +62,21 @@ def save_inp_oup_data(model: QuantModel, layer: Union[QuantModule, BaseQuantBloc
             logger.info(f"test_inp shape: {test_inp[0].shape}, {test_inp[1].shape}")
             if test_inp[0].shape[1] == 4096:
                 is_sm = True
-        #print(test_out.shape)
-        #if test_out.shape[1] == test_out.shape[2]:
-        #    logger.info(f"test_out shape: {test_out.shape}")
-        #    if test_out.shape[1] == 4096:
-        #        is_sm = True
-        is_sm = True
+        if test_out.shape[1] == test_out.shape[2]:
+            logger.info(f"test_out shape: {test_out.shape}")
+            if test_out.shape[1] == 4096:
+                is_sm = True
+            
         if is_sm:
             logger.info("Confirmed. Trading speed for memory when caching attn matrix calibration data")
-            inds = np.random.choice(cali_xs.size(0), cali_xs.size(0) // scaling_factor, replace=False)
+            inds = np.random.choice(cali_xs.size(0), cali_xs.size(0) // 2, replace=False)
         else:
             logger.info("Nope. Using normal caching method")
     
     
     num = int(cali_xs.size(0) / batch_size)
-    is_sm = True
     if is_sm:
-        num //= scaling_factor
+        num //= 2
     l_in_0, l_in_1, l_in, l_out = 0, 0, 0, 0
     for i in trange(num):
         if not cond:
@@ -102,33 +97,17 @@ def save_inp_oup_data(model: QuantModel, layer: Union[QuantModule, BaseQuantBloc
                 cali_ts[inds[i * batch_size:(i + 1) * batch_size]].to(device),
                 cali_conds[inds[i * batch_size:(i + 1) * batch_size]].to(device)
             )
-        #logger.info(f"curr input len {len(cur_inp)}")
-        #logger.info(f"curr input shape: {cur_inp[0].shape},{cur_inp[1].shape},{cur_inp[2].shape}")
         if isinstance(cur_inp, tuple):
-            if len(cur_inp)==2:
-                cur_x, cur_t = cur_inp
-                if not is_sm:
-                    cached_batches.append(((cur_x.cpu(), cur_t.cpu()), cur_out.cpu()))
-                else:
-                    if cached_inps is None:
-                        l_in_0 = cur_x.shape[0] * num
-                        l_in_1 = cur_t.shape[0] * num
-                        cached_inps = [torch.zeros(l_in_0, *cur_x.shape[1:]), torch.zeros(l_in_1, *cur_t.shape[1:])]
-                    cached_inps[0].index_copy_(0, torch.arange(i * cur_x.shape[0], (i + 1) * cur_x.shape[0]), cur_x.cpu())
-                    cached_inps[1].index_copy_(0, torch.arange(i * cur_t.shape[0], (i + 1) * cur_t.shape[0]), cur_t.cpu())
+            cur_x, cur_t = cur_inp
+            if not is_sm:
+                cached_batches.append(((cur_x.cpu(), cur_t.cpu()), cur_out.cpu()))
             else:
-                cur_x,cur_cond,cur_t = cur_inp
-                if not is_sm:
-                    cached_batches.append(((cur_x.cpu(), cur_cond.cpu(),cur_t.cpu()), cur_out.cpu()))
-                else:
-                    if cached_inps is None:
-                        l_in_0 = cur_x.shape[0] * num
-                        l_in_1 = cur_cond.shape[0]*num
-                        l_in_2 = cur_t.shape[0] * num
-                        cached_inps = [torch.zeros(l_in_0, *cur_x.shape[1:]), torch.zeros(l_in_1, *cur_cond.shape[1:]),torch.zeros(l_in_2, *cur_t.shape[1:])]
-                    cached_inps[0].index_copy_(0, torch.arange(i * cur_x.shape[0], (i + 1) * cur_x.shape[0]), cur_x.cpu())
-                    cached_inps[1].index_copy_(0, torch.arange(i * cur_cond.shape[0], (i + 1) * cur_cond.shape[0]), cur_cond.cpu())
-                    cached_inps[2].index_copy_(0, torch.arange(i * cur_t.shape[0], (i + 1) * cur_t.shape[0]), cur_t.cpu())
+                if cached_inps is None:
+                    l_in_0 = cur_x.shape[0] * num
+                    l_in_1 = cur_t.shape[0] * num
+                    cached_inps = [torch.zeros(l_in_0, *cur_x.shape[1:]), torch.zeros(l_in_1, *cur_t.shape[1:])]
+                cached_inps[0].index_copy_(0, torch.arange(i * cur_x.shape[0], (i + 1) * cur_x.shape[0]), cur_x.cpu())
+                cached_inps[1].index_copy_(0, torch.arange(i * cur_t.shape[0], (i + 1) * cur_t.shape[0]), cur_t.cpu())
         else:
             if not is_sm:
                 cached_batches.append((cur_inp.cpu(), cur_out.cpu()))
@@ -155,11 +134,7 @@ def save_inp_oup_data(model: QuantModel, layer: Union[QuantModule, BaseQuantBloc
         cached_outs = torch.cat([x[1] for x in cached_batches])
     
     if isinstance(cached_inps, list):
-        #logger.info(f"cached_inps len {len(cached_inps)}")
-        if len(cached_inps)==2:
-            logger.info(f"in 1 shape: {cached_inps[0].shape}, in 2 shape: {cached_inps[1].shape}")
-        else:
-            logger.info(f"in 1 shape: {cached_inps[0].shape}, in 2 shape: {cached_inps[1].shape}, in 3 shape: {cached_inps[2].shape}")
+        logger.info(f"in 1 shape: {cached_inps[0].shape}, in 2 shape: {cached_inps[1].shape}")
     else:
         logger.info(f"in shape: {cached_inps.shape}")
     logger.info(f"out shape: {cached_outs.shape}")
@@ -168,8 +143,6 @@ def save_inp_oup_data(model: QuantModel, layer: Union[QuantModule, BaseQuantBloc
         if isinstance(cached_inps, list):
             cached_inps[0] = cached_inps[0].to(device)
             cached_inps[1] = cached_inps[1].to(device)
-            if len(cached_inps)==3:
-                cached_inps[2] = cached_inps[2].to(device)
         else:
             cached_inps = cached_inps.to(device)
         cached_outs = cached_outs.to(device)
@@ -274,14 +247,10 @@ class GetLayerInpOut:
         self.model.set_quant_state(False, False)
         self.layer.set_quant_state(True, self.act_quant)
         self.model.train()
-        
-        if len(self.data_saver.input_store) == 2 and torch.is_tensor(self.data_saver.input_store[1]):
+
+        if len(self.data_saver.input_store) > 1 and torch.is_tensor(self.data_saver.input_store[1]):
             return (self.data_saver.input_store[0].detach(),  
                 self.data_saver.input_store[1].detach()), self.data_saver.output_store.detach()
-        elif len(self.data_saver.input_store) == 3 and torch.is_tensor(self.data_saver.input_store[1]):
-            return (self.data_saver.input_store[0].detach(),  
-                self.data_saver.input_store[1].detach(),
-                self.data_saver.input_store[2].detach()), self.data_saver.output_store.detach()
         else:
             return self.data_saver.input_store[0].detach(), self.data_saver.output_store.detach()
 

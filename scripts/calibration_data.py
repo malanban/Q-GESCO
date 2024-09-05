@@ -236,5 +236,6 @@ if __name__ == "__main__":
     print(f'xs shape: {data["xs"].shape}')
     print(f'ts shape: {data["ts"].shape}')
     print(f'cs shape: {data["cs"].shape}')
-    th.save(data, 'cali_data.pth')
+    snr = args.snr if args.snr in SNR_DICT else 'random'
+    th.save(data, f'cali_data_{args.cali_n}_{args.cali_st}_snr-{args.snr}.pth')
     print("Calibration Dataset saved in './cali_data.pth'")

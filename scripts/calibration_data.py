@@ -146,6 +146,11 @@ def create_argparser():
         "--cali_st", type=int, default=1, 
         help="number of timesteps used for calibration"
     )
+    parser.add_argument(
+        "--cali_snr", type=str, default="fixed", 
+        choices=["fixed", "random", "uniform"], 
+        help="SNR mode: fixed (default), random, or uniform"
+    )
 
     return parser
 
@@ -195,16 +200,40 @@ if __name__ == "__main__":
         if args.use_ddim
         else diffusion.p_sample_loop_progressive
     )
+
+    # Get SNR Values
+    snr_values = list(SNR_DICT.values())
+    num_snr_values = len(snr_values)
+    total_batches = N // args.batch_size
+        
+    # uniform snr: Compute how many batches to associate for each different snr value
+    if args.cali_snr == "uniform":
+        repeat_per_snr = total_batches // num_snr_values
+        remaining_batches = total_batches % num_snr_values
+
     xs_l, ts_l, cs_l = [], [], []
     
-    for batch, (images, cond) in enumerate(data_loader):
-        if (batch * args.batch_size >= args.cali_n):
+    for batch_idx, (images, cond) in enumerate(data_loader):
+        if (batch_idx * args.batch_size >= args.cali_n):
             break
-        print(f'Processing batch {batch}...')
+        print(f'Processing batch {batch_idx}...')
           
-        # Choose snr: use args.snr if provided, else select randomly from SNR_DICT
-        snr_value = SNR_DICT.get(args.snr, np.random.choice(list(SNR_DICT.values())))
+        # Compute the snr value based on provided strategy:
+        if args.cali_snr == "fixed":
+            # fixed: use fixed args.snr
+            snr_value = SNR_DICT[args.snr]
 
+        elif args.cali_snr == "random":
+            # random: use random choice of snr_values
+            snr_value = np.random.choice(snr_values)
+
+        elif args.cali_snr == "uniform":
+            # uniform: distribute possible snr values among batches
+            snr_index = batch_idx // repeat_per_snr
+            if snr_index >= num_snr_values:
+                # for remaining batches, use random index
+                snr_index = np.random.randint(0, num_snr_values)
+            snr_value = snr_values[snr_index]
         # generate model_kwargs
         model_kwargs = preprocess_input_FDS(cond, num_classes=args.num_classes, snr=snr_value, one_hot_label=args.one_hot_label)
         model_kwargs['s'] = args.s
@@ -236,6 +265,14 @@ if __name__ == "__main__":
     print(f'xs shape: {data["xs"].shape}')
     print(f'ts shape: {data["ts"].shape}')
     print(f'cs shape: {data["cs"].shape}')
-    snr = args.snr if args.snr in SNR_DICT else 'random'
-    th.save(data, f'cali_data_{args.cali_n}_{args.cali_st}_snr-{args.snr}.pth')
-    print("Calibration Dataset saved in './cali_data.pth'")
+
+    # snr label for filename
+    if args.cali_snr == "fixed":
+        snr_label = f"snr{args.snr}"
+    else:
+        snr_label = f'snr-{args.cali_snr}'
+
+    # dynamic filename
+    filename = f"cali_data_n{args.cali_n}_st{args.cali_st}_{snr_label}.pth"
+
+    print(f'Calibration Dataset saved in {filename}')

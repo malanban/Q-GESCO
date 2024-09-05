@@ -275,4 +275,8 @@ if __name__ == "__main__":
     # dynamic filename
     filename = f"cali_data_n{args.cali_n}_st{args.cali_st}_{snr_label}.pth"
 
+  # Save the Calibration Dataset
+    print(f"Saving Calibration Dataset to {filename}...")
+    th.save(data, filename)
+    print(f"Calibration Dataset saved in '{filename}'")
     print(f'Calibration Dataset saved in {filename}')

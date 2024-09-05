@@ -31,104 +31,30 @@ from pytorch_lightning import seed_everything
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 # SNR (var): 1 (0.9) 5 (0.6) 10 (0.36) 15 (0.22) 20 (0.13) 25 (0.08) 30 (0.05) 100 (0.0)
-SNR_DICT = {100: 0.0,
-            30: 0.05,
-            25: 0.08,
-            20: 0.13,
-            15: 0.22,
-            10: 0.36,
-            5: 0.6,
-            1: 0.9}
+SNR_DICT = {
+    100: 0.0,
+    30: 0.05,
+    25: 0.08,
+    20: 0.13,
+    15: 0.22,
+    10: 0.36,
+    5: 0.6,
+    1: 0.9
+}
 
-def preprocess_input(args, data, num_classes, one_hot_label=True):
-    # move to GPU and change data types
-    data['label'] = data['label'].long()
-
-    # create one-hot label map
-    label_map = data['label']
-    if one_hot_label:
-        bs, _, h, w = label_map.size()
-        input_label = th.FloatTensor(bs, num_classes, h, w).zero_()
-
-        # print("label_map.size()", label_map.size())
-
-        input_semantics = input_label.scatter_(1, label_map, 1.0)
-
-        # concatenate instance map if it exists
-        if 'instance' in data:
-            inst_map = data['instance']
-            instance_edge_map = get_edges(inst_map)
-            input_semantics = th.cat((input_semantics, instance_edge_map), dim=1)
-    else:
-        label_map = data['label']
-        if 'instance' in data:
-            # print("Instance in data")
-            inst_map = data['instance']
-            instance_edge_map = get_edges(inst_map)
-            input_semantics = th.cat((label_map, instance_edge_map), dim=1)
-
-    # print("Min, Mean, Max", th.min(input_semantics), th.mean(input_semantics), th.max(input_semantics))
-    # input_semantics = (input_semantics - th.mean(input_semantics)) / th.std(input_semantics)
-    # input_semantics = (input_semantics - th.min(input_semantics)) / (th.max(input_semantics - th.min(input_semantics)))
-    # print("After norm: Min, Mean, Max", th.min(input_semantics), th.mean(input_semantics), th.max(input_semantics))
-
-    # SNR (var): 1 (0.9) 5 (0.6) 10 (0.36) 15 (0.22) 20 (0.13) 25 (0.08) 30 (0.05) 100 (0.0)
-    noise = th.randn(input_semantics.shape, device=input_semantics.device)*SNR_DICT[args.snr]
-    input_semantics += noise
-    print("Min, Mean, Max", th.min(input_semantics), th.mean(input_semantics), th.max(input_semantics))
-    input_semantics = (input_semantics - th.min(input_semantics)) / (th.max(input_semantics) - th.min(input_semantics))
-    print("Min, Mean, Max", th.min(input_semantics), th.mean(input_semantics), th.max(input_semantics))
-
-    if args.pool == "med":
-        print("Using Median filter")
-        med_filter = MedianPool2d(padding=1, same=True)
-        input_semantics_clean = med_filter(input_semantics)
-    if args.pool == "mean":
-        print("Using Average filter")
-        avg_filter = th.nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
-        input_semantics_clean = avg_filter(input_semantics)
-    else:
-        input_semantics_clean = input_semantics
-
-    # input_semantics_clean = ndimage.median_filter(input_semantics.numpy(), size=20, mode="nearest")
-    # input_semantics_clean = np.array([])
-    # for map in input_semantics:
-    #     clean_map = np.array([])
-    #     for channel in map:
-    #         print(channel.shape)
-    #         clean_channel = signal.medfilt2d(channel.numpy())
-    #         clean_map = np.concatenate([clean_map, clean_channel], axis=0)
-    #     input_semantics_clean = np.concatenate([input_semantics_clean, clean_map], axis=0)
-    # input_semantics_clean = th.tensor(input_semantics_clean)
-    # input_semantics = (input_semantics - th.mean(input_semantics)) / th.std(input_semantics)
-    # print("After norm: Min, Mean, Max", th.min(input_semantics_clean), th.mean(input_semantics_clean), th.max(input_semantics_clean))
-    # input_semantics = (input_semantics - th.min(input_semantics)) / (th.max(input_semantics - th.min(input_semantics)))
-
-    plt.figure(figsize=(30,30))
-    for idx, channel in enumerate(input_semantics_clean[0]):
-        plt.subplot(6,6,idx+1)
-        plt.imshow(channel.numpy(), cmap="gray")
-        plt.axis("off")
-    plt.savefig("./seg_map.png")
-
-    return {'y': input_semantics_clean}
-
-def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
+def preprocess_input_FDS(data, num_classes, snr, one_hot_label=True):
     pool = "max"
     label_map = data['label'].long()
 
     # create one-hot label map
-    # label_map = label.unsqueeze(0)
     bs, _, h, w = label_map.size()
     input_label = th.FloatTensor(bs, num_classes, h, w).zero_()
     print("label map shape:", label_map.shape)
 
     input_semantics = input_label.scatter_(1, label_map, 1.0)
-    print('is 1:', input_semantics.shape)
     map_to_be_discarded = []
     map_to_be_preserved = []
     input_semantics = input_semantics.squeeze(0)
-    print('is 2: ', input_semantics.shape)
     for idx, segmap in enumerate(input_semantics.squeeze(0)):
         if 1 in segmap:
             map_to_be_preserved.append(idx)
@@ -141,26 +67,16 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
         instance_edge_map = get_edges(inst_map)
         print("instance edge map shape: ", instance_edge_map.shape)
         input_semantics = th.cat((input_semantics.unsqueeze(0), instance_edge_map), dim=1)
-        # input_semantics = th.cat((input_semantics, instance_edge_map), dim=1)
-        #add instance map to map indexes
         map_to_be_preserved.append(num_classes)
         num_classes += 1
 
-    # print(input_semantics.shape, len(map_to_be_preserved))
+    input_semantics = input_semantics[0][map_to_be_preserved]
 
-    # input_semantics = input_semantics[map_to_be_preserved].unsqueeze(0)
-    input_semantics = input_semantics[0][map_to_be_preserved] #: Perché 0 e non :bs?
-
-
-    # if pool != None:
-    #     avg_filter = th.nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
-    #     if 'instance' in data:
-    #         instance_edge_map = avg_filter(instance_edge_map)
-    #         input_semantics = th.cat((input_semantics.unsqueeze(0), instance_edge_map), dim=1)
-    noise = th.randn(input_semantics.shape, device=input_semantics.device)*SNR_DICT[args.snr]
-
+    # Add noise based on the provided SNR
+    noise = th.randn(input_semantics.shape, device=input_semantics.device) * snr
     input_semantics += noise
 
+    # Apply pooling (median, mean, or max)
     if pool == "med":
         print("Using Median filter")
         med_filter = MedianPool2d(padding=1, same=True)
@@ -168,39 +84,21 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
     elif pool == "mean":
         print("Using Average filter")
         avg_filter = th.nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
-        # avg_filter2 = th.nn.AvgPool2d(kernel_size=5, stride=1, padding=1)
         input_semantics_clean = avg_filter(input_semantics)
     elif pool == "max":
         print("Using Max filter")
         avg_filter = th.nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
         max_filter = th.nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
         input_semantics_clean = max_filter(avg_filter(input_semantics))
-
     else:
         input_semantics_clean = input_semantics
 
-#     print("After norm: Min, Mean, Max", torch.min(input_semantics_clean), torch.mean(input_semantics_clean), torch.max(input_semantics_clean))
-    # print("-->", input_semantics_clean.shape)
     input_semantics_clean = input_semantics_clean.unsqueeze(0)
-    
-    # Insert non-classes maps
-#     print("input_semantics_clean", input_semantics_clean.shape)
-    input_semantics = th.empty(size=(input_semantics_clean.shape[0],\
-                                        num_classes, input_semantics_clean.shape[2],\
-                                        input_semantics_clean.shape[3]), device=input_semantics_clean.device)
-    # print("input_semantics", input_semantics.shape)
-    # print("Preserved:", map_to_be_preserved, len(map_to_be_preserved))
-    # print("Discarded:", map_to_be_discarded, len(map_to_be_discarded))
-    # print("input_semantics_clean", input_semantics_clean[0].shape)
+
+    input_semantics = th.empty(size=(input_semantics_clean.shape[0], num_classes, input_semantics_clean.shape[2], input_semantics_clean.shape[3]), device=input_semantics_clean.device)
     input_semantics[0][map_to_be_preserved] = input_semantics_clean[0]
     input_semantics[0][map_to_be_discarded] = th.zeros((len(map_to_be_discarded), input_semantics_clean.shape[2], input_semantics_clean.shape[3]), device=input_semantics_clean.device)
-    
-    # plt.figure(figsize=(30,30))
-    # for idx, channel in enumerate(input_semantics[0]):
-    #     plt.subplot(6,6,idx+1)
-    #     plt.imshow(channel.numpy(), cmap="gray")
-    #     plt.axis("off")
-    # plt.savefig("./seg_map.png")
+
     print(f'input_semantic shape: {input_semantics.shape}')
     return {'y': input_semantics}
 
@@ -297,16 +195,21 @@ if __name__ == "__main__":
         if args.use_ddim
         else diffusion.p_sample_loop_progressive
     )
-    xs_l = []
-    ts_l = []
-    cs_l = []
+    xs_l, ts_l, cs_l = [], [], []
+    
     for batch, (images, cond) in enumerate(data_loader):
         if (batch * args.batch_size >= args.cali_n):
             break
-        print(f'batch {batch}:')
+        print(f'Processing batch {batch}...')
+          
+        # Choose snr: use args.snr if provided, else select randomly from SNR_DICT
+        snr_value = SNR_DICT.get(args.snr, np.random.choice(list(SNR_DICT.values())))
+
         # generate model_kwargs
-        model_kwargs = preprocess_input_FDS(args, cond, num_classes=args.num_classes, one_hot_label=args.one_hot_label)
+        model_kwargs = preprocess_input_FDS(cond, num_classes=args.num_classes, snr=snr_value, one_hot_label=args.one_hot_label)
         model_kwargs['s'] = args.s
+
+        # Intermediate Samples Generation Loop:
         for t, sample_t in enumerate(
             loop_fn(
                 model,
@@ -322,11 +225,13 @@ if __name__ == "__main__":
                 xs_l.append(sample_t['sample'])
                 ts_l.append((th.ones(args.batch_size) * t).float() * (1000.0 / T))
                 cs_l.append(model_kwargs['y'])
+
     data = {
         'xs': th.cat(xs_l, 0),
         'ts': th.cat(ts_l, 0),
         'cs': th.cat(cs_l, 0)
     }
+
     print("Sampling Complete")
     print(f'xs shape: {data["xs"].shape}')
     print(f'ts shape: {data["ts"].shape}')

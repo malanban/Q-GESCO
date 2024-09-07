@@ -90,15 +90,15 @@ def main():
         # image = ((batch + 1.0) / 2.0).cuda()
         # label = (cond['label_ori'].float() / 255.0).cuda()
 
-        image = ((batch + 1.0) / 2.0).to(device)
-        label = (cond['label_ori'].float() / 255.0).to(device)
+        # image = ((batch + 1.0) / 2.0).to(device)
+        # label = (cond['label_ori'].float() / 255.0).to(device)
 
-        sample = image[0].cpu().numpy()
-        sample = np.transpose(sample, (1,2,0))
-        plot_label = cond['label'][0].cpu().numpy()
-        plot_label = plot_label.squeeze(0)
-        plot_label2 = cond['label_ori'][0].cpu().numpy()
-        plot_label2 = plot_label2
+        # sample = image[0].cpu().numpy()
+        # sample = np.transpose(sample, (1,2,0))
+        # plot_label = cond['label'][0].cpu().numpy()
+        # plot_label = plot_label.squeeze(0)
+        # plot_label2 = cond['label_ori'][0].cpu().numpy()
+        # plot_label2 = plot_label2
 
         # plt.subplot(1,3,1)
         # plt.imshow(sample)
@@ -112,6 +112,7 @@ def main():
         model_kwargs = preprocess_input_FDS(args, cond, num_classes=args.num_classes, one_hot_label=args.one_hot_label)
         # model_kwargs, cond = preprocess_input(cond, one_hot_label=args.one_hot_label, add_noise=args.add_noise, noise_to=args.noise_to)
 
+        model_kwargs['y'] = model_kwargs['y'].to(device)
 
         # set hyperparameter
         model_kwargs['s'] = args.s
@@ -121,7 +122,7 @@ def main():
         )
         sample = sample_fn(
             model,
-            (args.batch_size, 3, image.shape[2], image.shape[3]),
+            (args.batch_size, 3, batch.shape[2], batch.shape[3]),
             clip_denoised=args.clip_denoised,
             model_kwargs=model_kwargs,
             progress=True
@@ -135,14 +136,23 @@ def main():
         all_samples.extend([sample.cpu().numpy()])
 
         for j in range(sample.shape[0]):
-            tv.utils.save_image(sample[j], "./sample.png")
-            # tv.utils.save_image(image[j], os.path.join(image_path, cond['path'][j].split('/')[-1].split('.')[0] + '.png'))
-            # tv.utils.save_image(sample[j], os.path.join(sample_path + "_SNR" + str(args.snr), cond['path'][j].split('/')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
-            # tv.utils.save_image(label[j], os.path.join(label_path, cond['path'][j].split('/')[-1].split('.')[0]  + '.png'))
-            tv.utils.save_image(image[j], os.path.join(image_path, cond['path'][j].split('\\')[-1].split('.')[0] + '.png'))
-            tv.utils.save_image(sample[j], os.path.join(sample_path + "_SNR" + str(args.snr), cond['path'][j].split('\\')[-1].split('.')[0] + '_SNR' + str(args.snr) + '_pool' + str(args.pool) + '.png'))
-            tv.utils.save_image(label[j], os.path.join(label_path, cond['path'][j].split('\\')[-1].split('.')[0]  + '.png'))
+            # Base Filename for the sample
+            base_filename = os.path.splitext(os.path.basename(cond['path'][j]))[0]
 
+            # Complete path for the image
+            image_filename = f"{base_filename}.png"
+            image_path_full = os.path.join(image_path, image_filename)
+            tv.utils.save_image(image[j], image_path_full)
+
+            # Percorso completo del file campione con aggiunte SNR e pool
+            sample_filename = f"{base_filename}_SNR{args.snr}_pool{args.pool}.png"
+            sample_path_full = os.path.join(sample_path, sample_filename)
+            tv.utils.save_image(sample[j], sample_path_full)
+
+            # Percorso completo del file etichetta
+            label_filename = f"{base_filename}.png"
+            label_path_full = os.path.join(label_path, label_filename)
+            tv.utils.save_image(label[j], label_path_full)
 
         print(f"created {len(all_samples) * args.batch_size} samples")
 

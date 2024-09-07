@@ -90,8 +90,8 @@ def main():
         # image = ((batch + 1.0) / 2.0).cuda()
         # label = (cond['label_ori'].float() / 255.0).cuda()
 
-        # image = ((batch + 1.0) / 2.0).to(device)
-        # label = (cond['label_ori'].float() / 255.0).to(device)
+        image = ((batch + 1.0) / 2.0).to(device)
+        label = (cond['label_ori'].float() / 255.0).to(device)
 
         # sample = image[0].cpu().numpy()
         # sample = np.transpose(sample, (1,2,0))

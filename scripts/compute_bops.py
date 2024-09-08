@@ -56,14 +56,18 @@ def main():
     model.eval()
 
     model.eval()
-    dummy_label = torch.randint(0, args.num_classes, (args.batch_size, 1, args.image_size, args.image_size * 2))
-    dummy_cond = {
-        'label': dummy_label,
-        'label_ori': dummy_label.float() * 255.0  # Fittizio
+
+    # dummy_label = torch.randint(0, args.num_classes, (args.batch_size, 1, args.image_size, args.image_size * 2))
+    # dummy_cond = {
+    #     'label': dummy_label,
+    #     'label_ori': dummy_label.float() * 255.0  # Fittizio
+    # }
+    # model_kwargs = preprocess_input_FDS(args, dummy_cond, num_classes=args.num_classes)
+    random_y = torch.randint(0, args.num_classes + 1, (args.batch_size, args.num_classes + 1, args.image_size, args.image_size * 2)).float().to("cuda")
+    model_kwargs = {
+        'y': random_y,  # Mappa semantica randomica
+        's': args.s     # Parametro iper
     }
-    model_kwargs = preprocess_input_FDS(args, dummy_cond, num_classes=args.num_classes)
-    model_kwargs['y'] = model_kwargs['y'].to("cuda")
-    model_kwargs['s'] = args.s
 
     sample_fn = diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
 

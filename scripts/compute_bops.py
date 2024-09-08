@@ -106,9 +106,9 @@ def main():
 
     # Raccogliere i risultati del profiler
     events = profiler.key_averages()
-
     # Ordinare per FLOPs
     valid_flops_events = [event for event in events if event.flops > 0]
+    print(valid_flops_events)
     sorted_events = sorted(valid_flops_events, key=lambda e: e.flops, reverse=True)
 
     # Calcolare il numero totale di FLOPs
@@ -130,16 +130,17 @@ def main():
     # Ordinare per FLOPs e filtrare solo quelli che hanno GFLOPs definiti
 
     # Stampare i risultati filtrati
-    print(f"{'Operation':<30} {'FLOPs':<20} {'Self CUDA Time (ns)':<20} {'CPU Time (ns)':<20}")
+    # print(f"{'Operation':<30} {'FLOPs':<20} {'Self CUDA Time (ns)':<20} {'CPU Time (ns)':<20}")
     for event in sorted_events:
-        # print(event)
-        print(f"{event.key:<30} {event.flops:<20} {event.self_cuda_time:<20} {event.self_cpu_time:<20}")
+        print(event)
+        print(f"{event.key:<30} {event.flops:<20}")
 
     # Salvataggio dei dati filtrati in un file CSV
     csv_file = 'flops_profile_filtered.csv'
 
     # Definire le intestazioni per il file CSV
-    fieldnames = ['Operation', 'GFLOPs', 'Self CUDA Time (ns)', 'CPU Time (ns)']
+    # fieldnames = ['Operation', 'GFLOPs', 'Self CUDA Time (ns)', 'CPU Time (ns)']
+    fieldnames = ['Operation', 'GFLOPs']
 
     with open(csv_file, mode='w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -149,8 +150,8 @@ def main():
             writer.writerow({
                 'Operation': event.key,
                 'GFLOPs': event.flops,
-                'Self CUDA Time (ns)': event.self_cuda_time,
-                'CPU Time (ns)': event.self_cpu_time
+                # 'Self CUDA Time (ns)': event.self_cuda_time,
+                # 'CPU Time (ns)': event.self_cpu_time
             })
 
     print(f"I dati filtrati dei FLOPs sono stati salvati nel file {csv_file}.")

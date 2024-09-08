@@ -149,8 +149,8 @@ def main():
             writer.writerow({
                 'Operation': event.key,
                 'GFLOPs': event.flops,
-                'Self CUDA Time (ns)': event.self_cuda_time_total,
-                'CPU Time (ns)': event.self_cpu_time_total
+                'Self CUDA Time (ns)': event.self_cuda_time,
+                'CPU Time (ns)': event.self_cpu_time
             })
 
     print(f"I dati filtrati dei FLOPs sono stati salvati nel file {csv_file}.")

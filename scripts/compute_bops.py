@@ -5,6 +5,7 @@ numpy array. This can be used to produce samples for FID evaluation.
 
 import argparse
 import os
+import csv
 
 import torch
 import torch.profiler
@@ -107,14 +108,15 @@ def main():
     events = profiler.key_averages()
 
     # Ordinare per FLOPs
-    sorted_events = sorted(events, key=lambda e: e.flops, reverse=True)
+    valid_flops_events = [event for event in events if event.flops > 0]
+    sorted_events = sorted(valid_flops_events, key=lambda e: e.flops, reverse=True)
 
     # Calcolare il numero totale di FLOPs
     total_flops = sum([event.flops for event in sorted_events])
 
     # Stampare il numero totale di FLOPs
     print(f"Numero totale di FLOPs: {total_flops}\n")
-    print(profiler.key_averages().table(sort_by="self_cuda_time_total", row_limit=-1))
+    # print(profiler.key_averages().table(sort_by="self_cuda_time_total", row_limit=-1))
     # # Stampa i risultati del profiling
     # print(prof.key_averages().table(sort_by="self_cuda_time_total", row_limit=10))
     # events = prof.events()
@@ -122,6 +124,35 @@ def main():
     # print("flops: ", flops)
     # # Salva i risultati in un file di traccia per una visualizzazione più dettagliata (ad esempio, con TensorBoard)
     # prof.export_chrome_trace("trace.json")
+    # Raccogliere i risultati del profiler
+    # events = profiler.key_averages()
+
+    # Ordinare per FLOPs e filtrare solo quelli che hanno GFLOPs definiti
+
+    # Stampare i risultati filtrati
+    print(f"{'Operation':<30} {'FLOPs':<20} {'Self CUDA Time (ns)':<20} {'CPU Time (ns)':<20}")
+    for event in sorted_events:
+        print(f"{event.key:<30} {event.flops:<20} {event.self_cuda_time_total:<20} {event.self_cpu_time_total:<20}")
+
+    # Salvataggio dei dati filtrati in un file CSV
+    csv_file = 'flops_profile_filtered.csv'
+
+    # Definire le intestazioni per il file CSV
+    fieldnames = ['Operation', 'GFLOPs', 'Self CUDA Time (ns)', 'CPU Time (ns)']
+
+    with open(csv_file, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        
+        for event in valid_flops_events:
+            writer.writerow({
+                'Operation': event.key,
+                'GFLOPs': event.flops,
+                'Self CUDA Time (ns)': event.self_cuda_time_total,
+                'CPU Time (ns)': event.self_cpu_time_total
+            })
+
+    print(f"I dati filtrati dei FLOPs sono stati salvati nel file {csv_file}.")
     
 
 def create_argparser():

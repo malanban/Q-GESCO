@@ -102,6 +102,18 @@ def main():
             model_kwargs=model_kwargs,
             progress=False
         )                
+
+    # Raccogliere i risultati del profiler
+    events = profiler.key_averages()
+
+    # Ordinare per FLOPs
+    sorted_events = sorted(events, key=lambda e: e.flops, reverse=True)
+
+    # Calcolare il numero totale di FLOPs
+    total_flops = sum([event.flops for event in sorted_events])
+
+    # Stampare il numero totale di FLOPs
+    print(f"Numero totale di FLOPs: {total_flops}\n")
     print(profiler.key_averages().table(sort_by="self_cuda_time_total", row_limit=-1))
     # # Stampa i risultati del profiling
     # print(prof.key_averages().table(sort_by="self_cuda_time_total", row_limit=10))

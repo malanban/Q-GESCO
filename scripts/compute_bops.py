@@ -77,7 +77,7 @@ def main():
     # Profilazione con il profiler nativo di PyTorch
     print("Profiling model with PyTorch Profiler...")
 
-    with profiler.profile(record_shapes=True) as prof:  # Usa solo record_shapes per tracciare le forme
+    with profiler.profile(record_shapes=True, with_flops=True, use_device='cuda') as prof:  # Usa solo record_shapes per tracciare le forme
         with profiler.record_function("model_inference"):
             sample = sample_fn(
                 model,

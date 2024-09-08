@@ -198,3 +198,6 @@ def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
     # plt.savefig("./seg_map.png")
 
     return {'y': input_semantics}
+
+if __name__ == "__main__":
+    main()

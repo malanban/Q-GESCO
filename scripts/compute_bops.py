@@ -7,8 +7,10 @@ import argparse
 import os
 
 import torch
+import torch.profiler
+
 # import torch.distributed as dist
-import torch.autograd.profiler as profiler
+# import torch.autograd.profiler as profiler
 # import torchvision as tv
 # import torchprofile
 # from torchprofile import profile_macs
@@ -77,23 +79,37 @@ def main():
     # Profilazione con il profiler nativo di PyTorch
     print("Profiling model with PyTorch Profiler...")
 
-    with profiler.profile(record_shapes=True, with_flops=True, use_device='cuda') as prof:  # Usa solo record_shapes per tracciare le forme
-        with profiler.record_function("model_inference"):
-            sample = sample_fn(
-                model,
-                (args.batch_size, 3, args.image_size, args.image_size * 2),
-                clip_denoised=args.clip_denoised,
-                model_kwargs=model_kwargs,
-                progress=False
-            )
-
-    # Stampa i risultati del profiling
-    print(prof.key_averages().table(sort_by="self_cuda_time_total", row_limit=10))
-    events = prof.events()
-    flops = sum([int(evt.flops) for evt in events]) 
-    print("flops: ", flops)
-    # Salva i risultati in un file di traccia per una visualizzazione più dettagliata (ad esempio, con TensorBoard)
-    prof.export_chrome_trace("trace.json")
+    # with profiler.profile(record_shapes=True, with_flops=True, use_device='cuda') as prof:  # Usa solo record_shapes per tracciare le forme
+    #     with profiler.record_function("model_inference"):
+    #         sample = sample_fn(
+    #             model,
+    #             (args.batch_size, 3, args.image_size, args.image_size * 2),
+    #             clip_denoised=args.clip_denoised,
+    #             model_kwargs=model_kwargs,
+    #             progress=False
+    #         )
+    with torch.profiler.profile(
+        activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
+        # record_shapes=True,
+        # profile_memory=True,
+        with_stack=True,
+        with_flops=True,
+    ) as profiler:
+        sample_fn (
+            model,
+            (args.batch_size, 3, args.image_size, args.image_size * 2),
+            clip_denoised=args.clip_denoised,
+            model_kwargs=model_kwargs,
+            progress=False
+        )                
+    print(profiler.key_averages().table(sort_by="self_cuda_time_total", row_limit=-1))
+    # # Stampa i risultati del profiling
+    # print(prof.key_averages().table(sort_by="self_cuda_time_total", row_limit=10))
+    # events = prof.events()
+    # flops = sum([int(evt.flops) for evt in events]) 
+    # print("flops: ", flops)
+    # # Salva i risultati in un file di traccia per una visualizzazione più dettagliata (ad esempio, con TensorBoard)
+    # prof.export_chrome_trace("trace.json")
     
 
 def create_argparser():

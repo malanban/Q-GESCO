@@ -77,20 +77,14 @@ def main():
     # Profilazione con il profiler nativo di PyTorch
     print("Profiling model with PyTorch Profiler...")
 
-    with profiler.profile(
-        activities=[
-            profiler.ProfilerActivity.CPU,
-            profiler.ProfilerActivity.CUDA],  # Profilazione CPU e GPU
-        record_shapes=True,  # Registra le forme dei tensori
-        profile_memory=True  # Misura anche l'utilizzo della memoria
-    ) as prof:
+    with profiler.profile(record_shapes=True) as prof:  # Usa solo record_shapes per tracciare le forme
         with profiler.record_function("model_inference"):
             sample = sample_fn(
                 model,
                 (args.batch_size, 3, args.image_size, args.image_size * 2),
                 clip_denoised=args.clip_denoised,
                 model_kwargs=model_kwargs,
-                prossgress=False
+                progress=False
             )
 
     # Stampa i risultati del profiling

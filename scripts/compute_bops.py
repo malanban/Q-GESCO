@@ -7,10 +7,11 @@ import argparse
 import os
 
 import torch
-import torch.distributed as dist
+# import torch.distributed as dist
+import torch.autograd.profiler as profiler
 # import torchvision as tv
-import torchprofile
-from torchprofile import profile_macs
+# import torchprofile
+# from torchprofile import profile_macs
 
 from guided_diffusion.image_datasets import load_data
 
@@ -73,16 +74,30 @@ def main():
 
     sample_fn = diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
 
-    # Usare torchprofile per misurare le operazioni (GBops)
-    print("Profiling model with torchprofile...")
-    macs = profile_macs(model, kwargs=model_kwargs)
-    print('MACs: {:.4g} G'.format(macs / 1e9))
+    # Profilazione con il profiler nativo di PyTorch
+    print("Profiling model with PyTorch Profiler...")
 
-    # Calcola le GBops
-    # total_flops = prof.total_flops()
-    # gbops = total_flops / 1e9
-    # print(f"Total FLOPs: {total_flops}")
-    # print(f"Total GBops: {gbops}")
+    with profiler.profile(
+        activities=[
+            profiler.ProfilerActivity.CPU,
+            profiler.ProfilerActivity.CUDA],  # Profilazione CPU e GPU
+        record_shapes=True,  # Registra le forme dei tensori
+        profile_memory=True  # Misura anche l'utilizzo della memoria
+    ) as prof:
+        with profiler.record_function("model_inference"):
+            sample = sample_fn(
+                model,
+                (args.batch_size, 3, args.image_size, args.image_size * 2),
+                clip_denoised=args.clip_denoised,
+                model_kwargs=model_kwargs,
+                prossgress=False
+            )
+
+    # Stampa i risultati del profiling
+    print(prof.key_averages().table(sort_by="self_cuda_time_total", row_limit=10))
+
+    # Salva i risultati in un file di traccia per una visualizzazione più dettagliata (ad esempio, con TensorBoard)
+    prof.export_chrome_trace("trace.json")
     
 
 def create_argparser():

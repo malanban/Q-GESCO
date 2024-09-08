@@ -56,7 +56,7 @@ def main():
     model.eval()
 
     model.eval()
-    dummy_label = torch.randint(0, args.num_classes, (args.batch_size, 1, args.image_size, args.image_size * 2)).to("cuda")
+    dummy_label = torch.randint(0, args.num_classes, (args.batch_size, 1, args.image_size, args.image_size * 2))
     dummy_cond = {
         'label': dummy_label,
         'label_ori': dummy_label.float() * 255.0  # Fittizio

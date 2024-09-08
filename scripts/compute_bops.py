@@ -10,6 +10,8 @@ import torch
 import torch.distributed as dist
 # import torchvision as tv
 import torchprofile
+from torchprofile import profile_macs
+
 from guided_diffusion.image_datasets import load_data
 
 # from guided_diffusion import dist_util, logger
@@ -73,20 +75,14 @@ def main():
 
     # Usare torchprofile per misurare le operazioni (GBops)
     print("Profiling model with torchprofile...")
-    with torchprofile.Profile(model, activities=[torchprofile.ProfilerActivity.CUDA], record_shapes=True) as prof:
-        sample = sample_fn(
-            model,
-            (args.batch_size, 3, args.image_size, args.image_size * 2),
-            clip_denoised=args.clip_denoised,
-            model_kwargs=model_kwargs,
-            progress=False
-        )
-    
+    macs = profile_macs(model, kwargs=model_kwargs)
+    print('MACs: {:.4g} G'.format(macs / 1e9))
+
     # Calcola le GBops
-    total_flops = prof.total_flops()
-    gbops = total_flops / 1e9
-    print(f"Total FLOPs: {total_flops}")
-    print(f"Total GBops: {gbops}")
+    # total_flops = prof.total_flops()
+    # gbops = total_flops / 1e9
+    # print(f"Total FLOPs: {total_flops}")
+    # print(f"Total GBops: {gbops}")
     
 
 def create_argparser():
@@ -112,96 +108,6 @@ def create_argparser():
     parser = argparse.ArgumentParser()
     add_dict_to_argparser(parser, defaults)
     return parser
-
-
-def preprocess_input_FDS(args, data, num_classes, one_hot_label=True):
-    
-    pool = "max"
-    label_map = data['label'].long()
-
-    # create one-hot label map
-    # label_map = label.unsqueeze(0)
-    bs, _, h, w = label_map.size()
-    input_label = torch.FloatTensor(bs, num_classes, h, w).zero_()
-#     print("label map shape:", label_map.shape)
-
-    input_semantics = input_label.scatter_(1, label_map, 1.0)
-    print(input_semantics.shape)
-    map_to_be_discarded = []
-    map_to_be_preserved = []
-    input_semantics = input_semantics.squeeze(0)
-    for idx, segmap in enumerate(input_semantics.squeeze(0)):
-        if 1 in segmap:
-            map_to_be_preserved.append(idx)
-        else:
-            map_to_be_discarded.append(idx)
-
-    # concatenate instance map if it exists
-    if 'instance' in data:
-        inst_map = data['instance']
-        instance_edge_map = get_edges(inst_map)
-        input_semantics = torch.cat((input_semantics.unsqueeze(0), instance_edge_map), dim=1)
-        #add instance map to map indexes
-        map_to_be_preserved.append(num_classes)
-        num_classes += 1
-
-    print(input_semantics.shape, len(map_to_be_preserved))
-
-    # input_semantics = input_semantics[map_to_be_preserved].unsqueeze(0)
-    input_semantics = input_semantics[0][map_to_be_preserved]
-
-
-    # if pool != None:
-    #     avg_filter = torch.nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
-    #     if 'instance' in data:
-    #         instance_edge_map = avg_filter(instance_edge_map)
-    #         input_semantics = torch.cat((input_semantics.unsqueeze(0), instance_edge_map), dim=1)
-    noise = torch.randn(input_semantics.shape, device=input_semantics.device)*SNR_DICT[args.snr]
-
-    input_semantics += noise
-
-    if pool == "med":
-        print("Using Median filter")
-        med_filter = MedianPool2d(padding=1, same=True)
-        input_semantics_clean = med_filter(input_semantics)
-    elif pool == "mean":
-        print("Using Average filter")
-        avg_filter = torch.nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
-        # avg_filter2 = torch.nn.AvgPool2d(kernel_size=5, stride=1, padding=1)
-        input_semantics_clean = avg_filter(input_semantics)
-    elif pool == "max":
-        print("Using Max filter")
-        avg_filter = torch.nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
-        max_filter = torch.nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
-        input_semantics_clean = max_filter(avg_filter(input_semantics))
-
-    else:
-        input_semantics_clean = input_semantics
-
-#     print("After norm: Min, Mean, Max", torch.min(input_semantics_clean), torch.mean(input_semantics_clean), torch.max(input_semantics_clean))
-    # print("-->", input_semantics_clean.shape)
-    input_semantics_clean = input_semantics_clean.unsqueeze(0)
-    
-    # Insert non-classes maps
-#     print("input_semantics_clean", input_semantics_clean.shape)
-    input_semantics = torch.empty(size=(input_semantics_clean.shape[0],\
-                                        num_classes, input_semantics_clean.shape[2],\
-                                        input_semantics_clean.shape[3]), device=input_semantics_clean.device)
-    # print("input_semantics", input_semantics.shape)
-    # print("Preserved:", map_to_be_preserved, len(map_to_be_preserved))
-    # print("Discarded:", map_to_be_discarded, len(map_to_be_discarded))
-    # print("input_semantics_clean", input_semantics_clean[0].shape)
-    input_semantics[0][map_to_be_preserved] = input_semantics_clean[0]
-    input_semantics[0][map_to_be_discarded] = torch.zeros((len(map_to_be_discarded), input_semantics_clean.shape[2], input_semantics_clean.shape[3]), device=input_semantics_clean.device)
-    
-    # plt.figure(figsize=(30,30))
-    # for idx, channel in enumerate(input_semantics[0]):
-    #     plt.subplot(6,6,idx+1)
-    #     plt.imshow(channel.numpy(), cmap="gray")
-    #     plt.axis("off")
-    # plt.savefig("./seg_map.png")
-
-    return {'y': input_semantics}
 
 if __name__ == "__main__":
     main()

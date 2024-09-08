@@ -89,7 +89,9 @@ def main():
 
     # Stampa i risultati del profiling
     print(prof.key_averages().table(sort_by="self_cuda_time_total", row_limit=10))
-
+    events = prof.events()
+    flops = sum([int(evt.flops) for evt in events]) 
+    print("flops: ", flops)
     # Salva i risultati in un file di traccia per una visualizzazione più dettagliata (ad esempio, con TensorBoard)
     prof.export_chrome_trace("trace.json")
     

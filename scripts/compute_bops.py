@@ -132,7 +132,8 @@ def main():
     # Stampare i risultati filtrati
     print(f"{'Operation':<30} {'FLOPs':<20} {'Self CUDA Time (ns)':<20} {'CPU Time (ns)':<20}")
     for event in sorted_events:
-        print(f"{event.key:<30} {event.flops:<20} {event.self_cuda_time_total:<20} {event.self_cpu_time_total:<20}")
+        print(event)
+        # print(f"{event.key:<30} {event.flops:<20} {event.self_cuda_time_total:<20} {event.self_cpu_time_total:<20}")
 
     # Salvataggio dei dati filtrati in un file CSV
     csv_file = 'flops_profile_filtered.csv'

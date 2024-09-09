@@ -108,7 +108,7 @@ def main():
     events = profiler.key_averages()
     # Ordinare per FLOPs
     valid_flops_events = [event for event in events if event.flops > 0]
-    print(valid_flops_events)
+    # print(valid_flops_events)
     sorted_events = sorted(valid_flops_events, key=lambda e: e.flops, reverse=True)
 
     # Calcolare il numero totale di FLOPs
@@ -132,8 +132,8 @@ def main():
     # Stampare i risultati filtrati
     # print(f"{'Operation':<30} {'FLOPs':<20} {'Self CUDA Time (ns)':<20} {'CPU Time (ns)':<20}")
     for event in sorted_events:
-        print(event)
-        print(f"{event.key:<30} {event.flops:<20}")
+        # print(event)
+        print(f"{event.key:<30} = {(event.flops/1e9):<10}")
 
     # Salvataggio dei dati filtrati in un file CSV
     csv_file = 'flops_profile_filtered.csv'

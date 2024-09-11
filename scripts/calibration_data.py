@@ -31,14 +31,20 @@ from pytorch_lightning import seed_everything
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 # SNR (var): 1 (0.9) 5 (0.6) 10 (0.36) 15 (0.22) 20 (0.13) 25 (0.08) 30 (0.05) 100 (0.0)
+# SNR_DICT = {
+#     100: 0.0,
+#     30: 0.05,
+#     25: 0.08,
+#     20: 0.13,
+#     15: 0.22,
+#     10: 0.36,
+#     5: 0.6,
+#     1: 0.9
+# }
 SNR_DICT = {
     100: 0.0,
-    30: 0.05,
-    25: 0.08,
     20: 0.13,
-    15: 0.22,
     10: 0.36,
-    5: 0.6,
     1: 0.9
 }
 
@@ -151,6 +157,10 @@ def create_argparser():
         choices=["fixed", "random", "uniform"], 
         help="SNR mode: fixed (default), random, or uniform"
     )
+    parser.add_argument(
+        "--cali_offset", type=int, default=0, 
+        help="Offset for data_loader"
+    )
 
     return parser
 
@@ -216,44 +226,46 @@ if __name__ == "__main__":
     for batch_idx, (images, cond) in enumerate(data_loader):
         if (batch_idx * args.batch_size >= args.cali_n):
             break
-        print(f'Processing batch {batch_idx}...')
-          
-        # Compute the snr value based on provided strategy:
-        if args.cali_snr == "fixed":
-            # fixed: use fixed args.snr
-            snr_value = SNR_DICT[args.snr]
+        if (batch_idx >= args.cali_offset):
+            print(f'Processing batch {batch_idx}...')    
 
-        elif args.cali_snr == "random":
-            # random: use random choice of snr_values
-            snr_value = np.random.choice(snr_values)
+            # Compute the snr value based on provided strategy:
+            if args.cali_snr == "fixed":
+                # fixed: use fixed args.snr
+                snr_value = SNR_DICT[args.snr]
 
-        elif args.cali_snr == "uniform":
-            # uniform: distribute possible snr values among batches
-            snr_index = batch_idx // repeat_per_snr
-            if snr_index >= num_snr_values:
-                # for remaining batches, use random index
-                snr_index = np.random.randint(0, num_snr_values)
-            snr_value = snr_values[snr_index]
-        # generate model_kwargs
-        model_kwargs = preprocess_input_FDS(cond, num_classes=args.num_classes, snr=snr_value, one_hot_label=args.one_hot_label)
-        model_kwargs['s'] = args.s
+            elif args.cali_snr == "random":
+                # random: use random choice of snr_values
+                snr_value = np.random.choice(snr_values)
 
-        # Intermediate Samples Generation Loop:
-        for t, sample_t in enumerate(
-            loop_fn(
-                model,
-                (args.batch_size, 3, args.image_size, args.image_size * 2),
-                clip_denoised=args.clip_denoised,
-                model_kwargs=model_kwargs,
-                device=device,
-                progress=True
-            )
-        ):
-            if (t + 1) % ds == 0:
-                print(f't = {t}')
-                xs_l.append(sample_t['sample'])
-                ts_l.append((th.ones(args.batch_size) * t).float() * (1000.0 / T))
-                cs_l.append(model_kwargs['y'])
+            elif args.cali_snr == "uniform":
+                # uniform: distribute possible snr values among batches
+                snr_index = batch_idx // repeat_per_snr
+                if snr_index >= num_snr_values:
+                    # for remaining batches, use random index
+                    snr_index = np.random.randint(0, num_snr_values)
+                snr_value = snr_values[snr_index]
+
+            # generate model_kwargs
+            model_kwargs = preprocess_input_FDS(cond, num_classes=args.num_classes, snr=snr_value, one_hot_label=args.one_hot_label)
+            model_kwargs['s'] = args.s
+
+            # Intermediate Samples Generation Loop:
+            for t, sample_t in enumerate(
+                loop_fn(
+                    model,
+                    (args.batch_size, 3, args.image_size, args.image_size * 2),
+                    clip_denoised=args.clip_denoised,
+                    model_kwargs=model_kwargs,
+                    device=device,
+                    progress=True
+                )
+            ):
+                if (t + 1) % ds == 0:
+                    print(f't = {t}')
+                    xs_l.append(sample_t['sample'])
+                    ts_l.append((th.ones(args.batch_size) * t).float() * (1000.0 / T))
+                    cs_l.append(model_kwargs['y'])
 
     data = {
         'xs': th.cat(xs_l, 0),
@@ -274,9 +286,8 @@ if __name__ == "__main__":
 
     # dynamic filename
     filename = f"cali_data_T{args.diffusion_steps}_n{args.cali_n}_st{args.cali_st}_{snr_label}.pth"
+    cali_data_path = os.path.join(args.results_path, filename)
 
   # Save the Calibration Dataset
-    print(f"Saving Calibration Dataset to {filename}...")
-    th.save(data, filename)
-    print(f"Calibration Dataset saved in '{filename}'")
-    print(f'Calibration Dataset saved in {filename}')
+    th.save(data, cali_data_path)
+    print(f"Calibration Dataset saved in '{cali_data_path}'")

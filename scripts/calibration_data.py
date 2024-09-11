@@ -285,7 +285,7 @@ if __name__ == "__main__":
         snr_label = f'snr-{args.cali_snr}'
 
     # dynamic filename
-    filename = f"cali_data_T{args.diffusion_steps}_n{args.cali_n}_st{args.cali_st}_{snr_label}.pth"
+    filename = f"cali_data_T{args.diffusion_steps}_n{args.cali_n}_st{args.cali_st}_{snr_label}_of{args.cali_offset}.pth"
     cali_data_path = os.path.join(args.results_path, filename)
 
   # Save the Calibration Dataset

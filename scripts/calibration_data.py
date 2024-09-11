@@ -224,7 +224,7 @@ if __name__ == "__main__":
     xs_l, ts_l, cs_l = [], [], []
     
     for batch_idx, (images, cond) in enumerate(data_loader):
-        if (batch_idx * args.batch_size >= args.cali_n):
+        if (batch_idx * args.batch_size + args.cali_offset >= args.cali_n):
             break
         if (batch_idx >= args.cali_offset):
             print(f'Processing batch {batch_idx}...')    

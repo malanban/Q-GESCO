@@ -12,11 +12,11 @@ Semantic communication is expected to be one of the cores of next-generation AI-
 We prove, through an in-depth assessment of multiple scenarios,  that our method outperforms existing solutions in generating high-quality images with preserved semantic information even in cases where the received content is significantly degraded. More specifically, our results show that objects, locations, and depths are still recognizable even in the presence of extremely noisy conditions of the communication channel.
 
 ### :dart: The GESCO framework
-<img src="architecture-Pagina-1.drawio.png"/>
+<img src="./figures/architecture-Pagina-1.drawio.png"/>
 
 ### :chart_with_upwards_trend: Main Results
 
-<img src="fig1-Pagina-1.drawio.png"/>
+<img src="./figures/fig1-Pagina-1.drawio.png"/>
 
 ### :clipboard: How to use GESCO
 

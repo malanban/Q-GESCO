@@ -1,4 +1,13 @@
-## QGESCO:
+# Lightweight Diffusion Models for Resource-Constrained Semantic Communication
+### [Giovanni Pignata](https://github.com/zigarov), [Eleonora Grassucci](https://sites.google.com/uniroma1.it/eleonoragrassucci/home-page), [Giordano Cicchetti](), and [Danilo Comminiello](https://danilocomminiello.site.uniroma1.it/)
+
+## Abstract
+Recently, generative semantic communication models have proliferated as they are revolutionizing semantic communication frameworks, improving their performance, and opening the way to novel applications. Despite their impressive ability to regenerate content from the compressed semantic information received, generative models pose crucial challenges for communication systems in terms of high memory footprints and heavy computational load. In this paper, we present a novel Quantized GEnerative Semantic COmmunication framework, Q-GESCO. The core method of Q-GESCO is a quantized semantic diffusion model capable of regenerating transmitted images from the received semantic maps while simultaneously reducing computational load and memory footprint thanks to the proposed post-training quantization technique. Q-GESCO is robust to different channel noises and obtains comparable performance to the full precision counterpart in different scenarios saving up to 75\% memory and 79\% floating point operations. This allows resource-constrained devices to exploit the generative capabilities of Q-GESCO, opening the range of applications and systems for generative semantic communication frameworks.
+
+## Q-GESCO pipeline
+<img src="/figures/qgesco_pipeline.png">
+
+## Getting Started
 
 ### Quantize GESCO
 * Train your own model or download our pretrained weights of GESCO [here](https://drive.google.com/file/d/1lW8J4gcZ3SS9r-kpEBMrVUfbC6mNLUP4/view?usp=drive_link).

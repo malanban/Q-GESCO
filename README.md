@@ -34,3 +34,15 @@ python scripts/quant_sampling.py --data_dir ./data_val --dataset_mode cityscapes
 ```
 
 The samples will be generated in the `./logs` directory.
+
+#### Cite
+Please, cite our work if you found it useful.
+
+```
+@article{pignata2024icassp,
+    title={Lightweight Diffusion Models for Resource-Constrained Semantic Communication},
+    author={Pignata, Giovanni and Grassucci, Eleonora and Barbarossa, Sergio and Comminiello, Danilo},
+    year={2024},
+    journal={Under review at IEEE ICASSP 2025},
+}
+```

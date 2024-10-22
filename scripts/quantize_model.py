@@ -203,6 +203,21 @@ def create_argparser():
 
     return parser
 
+class QuantModel(nn.Module):
+    def __init__(self, model, weight_quant_params, act_quant_params, sm_abit):
+        super(QuantModel, self).__init__()
+        # Check if the model is wrapped in DataParallel
+        if isinstance(model, nn.DataParallel):
+            self.in_channels = model.module.in_channels  # Access the original model's attribute
+        else:
+            self.in_channels = model.in_channels  # Access normally if not wrapped
+
+        # Save the model and other parameters
+        self.model = model
+        self.weight_quant_params = weight_quant_params
+        self.act_quant_params = act_quant_params
+        self.sm_abit = sm_abit
+
 if __name__ == "__main__":    
     # parse_args
     args = create_argparser().parse_args()
@@ -254,6 +269,9 @@ if __name__ == "__main__":
     if args.use_fp16:
         model.convert_to_fp32()
         # model.convert_to_fp16() #: potenziale conflitto
+    if torch.cuda.device_count() > 1:
+        print("Using multiple GPUs!")
+        model = nn.DataParallel(model)
     model.to(device)
     model.eval()
 

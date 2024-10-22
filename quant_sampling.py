@@ -29,7 +29,7 @@ from guided_diffusion.script_util import (
     args_to_dict,
 )
 
-from pooling import MedianPool2d
+from scripts.pooling import MedianPool2d
 
 from qdiff import (
     QuantModel, QuantModule, BaseQuantBlock, 

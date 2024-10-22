@@ -351,9 +351,9 @@ if __name__ == "__main__":
     if args.use_fp16:
         model.convert_to_fp32()
         # model.convert_to_fp16() #: potenziale conflitto
-    if torch.cuda.device_count() > 1:
-        print("Using multiple GPUs!")
-        model = torch.nn.DataParallel(model)
+    # if torch.cuda.device_count() > 1:
+    #     print("Using multiple GPUs!")
+    #     model = torch.nn.DataParallel(model)
     model.to(device)
     model.eval()
 
@@ -511,7 +511,8 @@ if __name__ == "__main__":
 
     print("Generating image samples for FID evaluation.")
     all_samples = []
-    for i, (batch, cond) in enumerate(data):
+    # for i, (batch, cond) in enumerate(data):
+    for i, (batch, cond) in zip(range(1), data):
         image = ((batch + 1.0) / 2.0).to(device)
         label = (cond['label_ori'].float() / 255.0).to(device)
 

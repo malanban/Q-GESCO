@@ -255,9 +255,9 @@ if __name__ == "__main__":
     if args.use_fp16:
         model.convert_to_fp32()
         # model.convert_to_fp16() #: potenziale conflitto
-    if torch.cuda.device_count() > 1:
-        print("Using multiple GPUs!")
-        model = nn.DataParallel(model)
+    # if torch.cuda.device_count() > 1:
+    #     print("Using multiple GPUs!")
+    #     model = nn.DataParallel(model)
     model.to(device)
     model.eval()
 
@@ -278,9 +278,9 @@ if __name__ == "__main__":
                 qnn = QuantModel(
                     model=model, weight_quant_params=wq_params, act_quant_params=aq_params, 
                     sm_abit=args.sm_abit)
-                if torch.cuda.device_count() > 1:
-                    print("Using multiple GPUs!...")
-                    qnn = nn.DataParallel(qnn)
+                # if torch.cuda.device_count() > 1:
+                #     print("Using multiple GPUs!...")
+                #     qnn = nn.DataParallel(qnn)
                 qnn.to(device)
                 qnn.eval()
                 print('Quant Model Created')

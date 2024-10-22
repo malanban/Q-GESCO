@@ -351,6 +351,9 @@ if __name__ == "__main__":
     if args.use_fp16:
         model.convert_to_fp32()
         # model.convert_to_fp16() #: potenziale conflitto
+    if torch.cuda.device_count() > 1:
+        print("Using multiple GPUs!")
+        model = torch.nn.DataParallel(model)
     model.to(device)
     model.eval()
 

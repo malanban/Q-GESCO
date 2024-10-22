@@ -287,7 +287,8 @@ if __name__ == "__main__":
                     aq_params['scale_method'] = 'max'
                 if args.resume_w:
                     wq_params['scale_method'] = 'max'
-                # Instantiate Quant Model (Wrapper)    
+                # Instantiate Quant Model (Wrapper)   
+                print("testing........") 
                 qnn = QuantModel(
                     model=model, weight_quant_params=wq_params, act_quant_params=aq_params, 
                     sm_abit=args.sm_abit)
